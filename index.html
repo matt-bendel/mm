@@ -50,7 +50,7 @@
   .center{text-align:center}
   .pill{padding:6px 10px; border-radius:999px; background:#151518; border:1px solid #2a2a30; font-size:12px}
 
-  /* Burned parchment */
+  /* Burned parchment for clues */
   .parchment{
     color:#20160f;
     border:1px solid #3a2a1f;
@@ -79,8 +79,8 @@
   .parchment h4{margin:.3rem 0 .2rem; font-size:18px; color:#f2e7d9}
   .parchment .tag{font-size:12px; color:#bda48f}
 
-  /* Checklist */
-  .todo{display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid #242428; border-radius:12px; margin-top:8px; background:#101014}
+  /* Checklist: left-justified check & text */
+  .todo{display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid #242428; border-radius:12px; margin-top:8px; background:#101014; justify-content:flex-start}
   .todo input[type="checkbox"]{transform:scale(1.2); margin-top:3px}
   .todo.done{opacity:.7}
   .kicker{font-family:Cinzel,serif; font-weight:700; letter-spacing:.4px}
@@ -100,14 +100,14 @@
 <body>
 <header>
   <div class="title">Moonlit Bandanas</div>
-  <div class="subtitle">Assignments • Active Mode • Clues • Mob Justice</div>
+  <div class="subtitle">Assignments • Clues • Mob Justice</div>
 </header>
 
 <div class="wrap">
   <nav class="tabs" role="tablist" aria-label="Moonlit App">
     <button class="tab" id="tab-host" role="tab" aria-selected="true">Host Setup</button>
     <button class="tab" id="tab-join" role="tab" aria-selected="false">Join</button>
-    <button class="tab" id="tab-active" role="tab" aria-selected="false">Active Mode</button>
+    <!-- NOTE: No "Active Mode" tab for players -->
     <button class="tab" id="tab-clues" role="tab" aria-selected="false">Clues</button>
     <button class="tab" id="tab-admin" role="tab" aria-selected="false">Admin</button>
   </nav>
@@ -147,8 +147,8 @@
         <ul>
           <li>Host creates a room with passwords.</li>
           <li>Players join and receive a random unclaimed character.</li>
-          <li>Active Mode tracks tasks; Clues appear as they’re revealed.</li>
-          <li>Mob Justice votes, death toggles, and rounds are controlled by the Admin.</li>
+          <li>Admin starts the game when ready. Before that, players only see their character (and role, if any).</li>
+          <li>Rounds, voting, deaths, clues, and win checks are controlled by the Admin.</li>
         </ul>
       </div>
     </div>
@@ -178,7 +178,7 @@
       <div id="myRoleCard" class="card" style="display:none; margin-top:12px">
         <div class="row"><span class="badge success">Assigned</span></div>
         <h3 id="roleName" style="margin:8px 0 6px; font-family:Cinzel,serif"></h3>
-        <div class="muted">See Active Mode for your checklist and voting.</div>
+        <div class="muted">When the host starts, your objectives will unlock.</div>
         <div class="row" style="margin-top:10px">
           <button class="btn secondary" id="copyRoleBtn">Copy to Clipboard</button>
         </div>
@@ -186,15 +186,14 @@
     </div>
   </section>
 
-  <!-- ACTIVE MODE -->
-  <section id="panel-active" class="panel" role="tabpanel" aria-labelledby="tab-active" hidden>
+  <!-- ACTIVE (no tab; panel only) -->
+  <section id="panel-active" class="panel" hidden>
     <div class="grid">
       <div class="row" style="justify-content:space-between">
         <div class="row" style="gap:12px">
           <span class="pill" id="activeRoomPill">Room: —</span>
           <span class="pill" id="activeNamePill">Player: —</span>
           <span class="pill" id="activeCharPill">Character: —</span>
-          <span class="pill" id="activeRolePill">Special: (none)</span>
           <span class="pill" id="roundPill">Round: —</span>
           <span class="pill" id="voteStatusPill">Vote: —</span>
           <span class="pill" id="voteCountdownPill">⏳ —</span>
@@ -204,35 +203,50 @@
 
       <div class="divider"></div>
 
-      <div class="grid grid-2">
-        <div>
-          <h3 class="kicker">Your Objectives</h3>
-          <div id="todoList" class="muted">—</div>
-        </div>
-        <div>
-          <h3 class="kicker">Notes (private)</h3>
-          <textarea id="notesBox" placeholder="Jot suspects, alibis, or reminders… (saved on this device)"></textarea>
-          <div class="row" style="margin-top:8px">
-            <button class="btn secondary" id="saveNotesBtn">Save Notes</button>
-            <span class="muted">Notes are not uploaded.</span>
-          </div>
-        </div>
+      <!-- Character summary + Role details -->
+      <div class="card" id="charSummaryBox">
+        <h3 class="kicker">Your Character</h3>
+        <div id="charSummaryText" class="muted">—</div>
+        <div id="roleDetailsBox" style="margin-top:10px"></div>
       </div>
 
-      <div class="divider"></div>
+      <!-- WAITING STATE -->
+      <div id="waitingState" class="card">
+        <h3 class="kicker">Waiting for Host to Start</h3>
+        <div class="muted">You’ll see objectives, notes, and Mob Justice once the game begins.</div>
+      </div>
 
-      <!-- MOB JUSTICE (player) -->
-      <div class="card">
-        <h3 class="kicker">Mob Justice</h3>
-        <div id="voteBlock">
-          <div class="muted" id="voteHelp">Waiting for Admin to open voting…</div>
-          <div id="candidateList" class="vote-list" style="margin-top:8px"></div>
-          <div class="row" style="margin-top:10px">
-            <button class="btn" id="castVoteBtn">Cast / Update Vote</button>
-            <span class="muted">One vote per round; you can change it until voting closes.</span>
+      <div id="liveGameBlock" hidden>
+        <div class="grid grid-2">
+          <div>
+            <h3 class="kicker">Your Objectives</h3>
+            <div id="todoList" class="muted">—</div>
           </div>
-          <div class="divider"></div>
-          <div id="tallyBox" class="muted"></div>
+          <div>
+            <h3 class="kicker">Notes (private)</h3>
+            <textarea id="notesBox" placeholder="Jot suspects, alibis, or reminders… (saved on this device)"></textarea>
+            <div class="row" style="margin-top:8px">
+              <button class="btn secondary" id="saveNotesBtn">Save Notes</button>
+              <span class="muted">Notes are not uploaded.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- MOB JUSTICE (player) -->
+        <div class="card">
+          <h3 class="kicker">Mob Justice</h3>
+          <div id="voteBlock">
+            <div class="muted" id="voteHelp">Waiting for Admin to open voting…</div>
+            <div id="candidateList" class="vote-list" style="margin-top:8px"></div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn" id="castVoteBtn">Cast / Update Vote</button>
+              <span class="muted">One vote per round; you can change it until voting closes.</span>
+            </div>
+            <div class="divider"></div>
+            <div id="tallyBox" class="muted"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -308,9 +322,20 @@
         </div>
       </div>
 
-      <!-- ROUND & VOTING CONTROLS -->
+      <!-- ROUND, GAME & VOTING CONTROLS -->
       <div class="card">
-        <h3>Round & Mob Justice Controls</h3>
+        <h3>Game, Round & Mob Justice Controls</h3>
+        <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
+          <div>
+            <label>Game State</label>
+            <input id="gameStateDisplay" disabled />
+          </div>
+          <button class="btn" id="startGameBtn">Start Game</button>
+          <button class="btn secondary" id="stopGameBtn">Back to Waiting</button>
+        </div>
+
+        <div class="divider"></div>
+
         <div class="row" style="gap:10px; align-items:flex-end">
           <div>
             <label>Round</label>
@@ -393,7 +418,6 @@
 const TABS = [
   {btn:'tab-host',   panel:'panel-host'},
   {btn:'tab-join',   panel:'panel-join'},
-  {btn:'tab-active', panel:'panel-active'},
   {btn:'tab-clues',  panel:'panel-clues'},
   {btn:'tab-admin',  panel:'panel-admin'},
 ];
@@ -406,7 +430,7 @@ TABS.forEach(({btn,panel})=>{
   });
 });
 
-/* Defaults */
+/* Defaults (added 5th objective for initial+4 rounds) */
 const CHARACTERS = [
 "V. M. Pyre — Fire-eater & matchbook collector",
 "Ashen Vale — Traveling apothecary",
@@ -441,10 +465,11 @@ const CHARACTERS = [
 ];
 
 const DEFAULT_TASKS = [
-  "Learn two names and one hobby.",
-  "Trade a small trinket or token with someone.",
-  "Share one rumor or clue you’ve heard.",
-  "Publicly vouch for or accuse exactly one person."
+  "Learn two names and one hobby.",                      // Round 1 (Initial mingle)
+  "Trade a small trinket or token with someone.",        // Round 2
+  "Share one rumor or clue you’ve heard.",               // Round 3
+  "Publicly vouch for or accuse exactly one person.",    // Round 4
+  "Find someone who matches a clue and ask them about it." // Round 5
 ];
 
 const DEFAULT_CLUES = [
@@ -495,13 +520,6 @@ function setCookie(name,value,days){
 function getCookie(name){
   const m = document.cookie.match(new RegExp('(^| )'+name+'=([^;]+)')); return m ? decodeURIComponent(m[2]) : '';
 }
-function showAdminTab(visible){
-  const btn = byId('tab-admin'), panel = byId('panel-admin');
-  btn.style.display = visible ? '' : 'none';
-  if (!visible) panel.hidden = true;
-}
-showAdminTab(localStorage.getItem('mb_pass_admin_ok') === '1');
-
 const modal = byId('resultModal');
 byId('closeModalBtn').addEventListener('click', ()=> modal.close());
 function popup(title, html){
@@ -509,6 +527,10 @@ function popup(title, html){
   byId('modalBody').innerHTML = html;
   modal.showModal();
 }
+
+/* Always show Admin tab (auth still required) */
+function showAdminTab(){ byId('tab-admin').style.display = ''; }
+showAdminTab();
 
 /* Host Setup */
 const rolePoolEl = byId('rolePool');
@@ -531,12 +553,12 @@ byId('createRoomBtn').addEventListener('click', async ()=>{
   if (!unique.length){ hostStatus.innerHTML = `<span class="badge danger">No characters provided</span>`; return; }
   const chars = {};
   unique.forEach((line, i)=>{
-    const [name] = line.split('—'); // name — desc (optional visual)
     const id = 'c_'+i.toString().padStart(3,'0');
+    // keep the whole line in name; optional desc field for CSV imports
     chars[id] = {name: line, desc: null, claimedBy:null, claimedAt:null, dead:false};
   });
   const clues = {}; DEFAULT_CLUES.forEach(c=>{ clues[c.id] = {title:c.title, body:c.body, revealed:false}; });
-  const state = { round: 1, voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null } };
+  const state = { gameStarted:false, round: 1, voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null } };
   try{
     await db.ref(`rooms/${code}`).set({
       passHash, adminHash, createdAt: Date.now(),
@@ -672,7 +694,7 @@ function loadLocalIdentity(){
 }
 async function getRoomState(room){
   const snap = await db.ref(`rooms/${room}/state`).get();
-  if (!snap.exists()) return { round:1, voting:{open:false,closed:false,candidates:null,votes:null,endsAt:null} };
+  if (!snap.exists()) return { gameStarted:false, round:1, voting:{open:false,closed:false,candidates:null,votes:null,endsAt:null} };
   return snap.val();
 }
 
@@ -682,27 +704,70 @@ async function refreshActive(){
   setPill('activeNamePill', `Player: ${name||'—'}`);
   setPill('activeCharPill', `Character: ${charName||'—'}`);
 
-  if (!room || !name){ byId('todoList').innerHTML = '—'; setPill('activeRolePill','Special: (none)'); setPill('roundPill','Round: —'); setPill('voteStatusPill','Vote: —'); setPill('voteCountdownPill','⏳ —'); return; }
+  if (!room || !name){
+    byId('panel-active').hidden = false; // still show container so players know to Join
+    byId('charSummaryText').innerHTML = '—';
+    byId('roleDetailsBox').innerHTML = '';
+    byId('waitingState').hidden = false;
+    byId('liveGameBlock').hidden = true;
+    setPill('roundPill','Round: —'); setPill('voteStatusPill','Vote: —'); setPill('voteCountdownPill','⏳ —');
+    return;
+  }
 
   const uid = getUid(room, name);
-  const [userSnap, state] = await Promise.all([
+  const [userSnap, stateSnap, charsSnap, usersSnap] = await Promise.all([
     db.ref(`rooms/${room}/users/${uid}`).get(),
-    getRoomState(room)
+    db.ref(`rooms/${room}/state`).get(),
+    db.ref(`rooms/${room}/characters`).get(),
+    db.ref(`rooms/${room}/users`).get()
   ]);
-  setPill('roundPill', `Round: ${state.round||1}`);
+  const state = stateSnap.exists()? stateSnap.val(): {gameStarted:false, round:1, voting:{}};
   const voting = state.voting || {};
+  const chars = charsSnap.exists()? charsSnap.val(): {};
+  const users = usersSnap.exists()? usersSnap.val(): {};
+
+  setPill('roundPill', `Round: ${state.round||1}`);
   setPill('voteStatusPill', `Vote: ${voting.open ? 'OPEN' : (voting.closed ? 'CLOSED' : '—')}`);
   updateCountdownPill(voting.endsAt);
 
-  if (!userSnap.exists()){ byId('todoList').innerHTML='—'; setPill('activeRolePill','Special: (none)'); return; }
-  const u = userSnap.val();
-  setPill('activeRolePill', `Special: ${u.specialRole || '(none)'}`);
+  if (!userSnap.exists()){
+    byId('charSummaryText').innerHTML = '—';
+    byId('roleDetailsBox').innerHTML = '';
+    byId('waitingState').hidden = false;
+    byId('liveGameBlock').hidden = true;
+    return;
+  }
+  const me = userSnap.val();
 
-  const list = (u.tasks||[]).map((t,i)=>`
-    <div class="todo ${t.done?'done':''}">
+  // Character summary (show full text name and optional desc)
+  const charRec = me.charId && chars[me.charId] ? chars[me.charId] : null;
+  const charLine = charRec ? charRec.name : (charName||'—');
+  const charDesc = (charRec && charRec.desc) ? `<div class="muted">${charRec.desc}</div>` : '';
+  byId('charSummaryText').innerHTML = `<div><b>${charLine}</b>${charDesc}</div>`;
+
+  // Role details (inline, no top pill). Show villain visibility appropriately.
+  byId('roleDetailsBox').innerHTML = renderRoleDetails(me, users, chars);
+
+  // Wait state vs live game
+  if (!state.gameStarted){
+    byId('waitingState').hidden = false;
+    byId('liveGameBlock').hidden = true;
+    byId('panel-active').hidden = false;
+    return;
+  }else{
+    byId('waitingState').hidden = true;
+    byId('liveGameBlock').hidden = false;
+    byId('panel-active').hidden = false;
+  }
+
+  // Objectives — reveal 1 per round cumulatively (round 1 shows first, round 2 shows first two, …)
+  const toShow = Math.min(me.tasks?.length||0, state.round||1);
+  const tasks = (me.tasks||[]).slice(0, toShow);
+  const list = tasks.map((t,i)=>`
+    <label class="todo ${t.done?'done':''}">
       <input type="checkbox" data-ix="${i}" ${t.done?'checked':''}/>
       <div>${t.text}</div>
-    </div>`).join('');
+    </label>`).join('');
   byId('todoList').innerHTML = list || '<div class="muted">No tasks found.</div>';
   [...byId('todoList').querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
     cb.addEventListener('change', async (e)=>{
@@ -738,6 +803,51 @@ function updateCountdownPill(endsAt){
   }
   tick();
   countdownTimer = setInterval(tick, 1000);
+}
+
+/* Role details rendering & villain visibility */
+function aliveStatus(u, chars){ const dead = u?.dead || (u?.charId && chars[u.charId]?.dead); return dead ? ' (dead)' : ' (alive)'; }
+function roleDetailsText(role){
+  switch(role){
+    case 'Elder Vampire': return 'Primary killer. One target per round, and +1 additional kill each round (bandana snatch). Knows the Lesser Vampire and the Thrall.';
+    case 'Lesser Vampire': return 'Succeeds the Elder upon Elder’s death. Knows the Elder and the Thrall. Has no thrall of their own.';
+    case 'Thrall': return 'Once-per-game compelled kill on Elder’s command; obeys Elder’s orders. Freed if the Elder dies.';
+    case 'Night Warden': return 'Openly armed hunter (nerf blaster). May eliminate one target per round. May hit innocent or vampire.';
+    case 'Mirrorcloak': return 'Hidden avenger. If attacked by the vampire or thrall, the attacker dies instantly.';
+    case 'Gravespeaker': return 'Medium. After each death, may speak with the dead; each spirit can publicly clear one other player as innocent.';
+    default: return null;
+  }
+}
+function renderRoleDetails(me, users, chars){
+  if (!me.specialRole) return '';
+  const base = `<div class="card" style="margin-top:8px">
+      <div><b>Role:</b> ${me.specialRole}</div>
+      <div class="muted" style="margin-top:6px">${roleDetailsText(me.specialRole)||''}</div>`;
+  // villain visibility
+  if (me.specialRole === 'Elder Vampire' || me.specialRole === 'Lesser Vampire'){
+    // find lesser, elder, thrall
+    let elder=null, lesser=null, thrall=null;
+    for (const [uid,u] of Object.entries(users||{})){
+      if (u.specialRole === 'Elder Vampire') elder = {uid,u};
+      if (u.specialRole === 'Lesser Vampire') lesser = {uid,u};
+      if (u.specialRole === 'Thrall') thrall = {uid,u};
+    }
+    const lines=[];
+    if (elder) lines.push(`Elder Vampire: <b>${elder.u.name}</b>${aliveStatus(elder.u, chars)}`);
+    if (lesser) lines.push(`Lesser Vampire: <b>${lesser.u.name}</b>${aliveStatus(lesser.u, chars)}`);
+    if (thrall) lines.push(`Thrall: <b>${thrall.u.name}</b>${aliveStatus(thrall.u, chars)}`);
+    return base + (lines.length? `<div style="margin-top:10px">${lines.map(x=>`• ${x}`).join('<br>')}</div>`:'') + `</div>`;
+  }
+  if (me.specialRole === 'Thrall'){
+    let elder=null;
+    for (const [uid,u] of Object.entries(users||{})){
+      if (u.specialRole === 'Elder Vampire') elder = {uid,u};
+    }
+    const freed = elder ? (elder.u.dead || (elder.u.charId && chars[elder.u.charId]?.dead)) : false;
+    const line = elder ? `Elder Vampire: <b>${elder.u.name}</b>${aliveStatus(elder.u, chars)}${freed?' — you are <b>SET FREE</b>.':''}` : 'Elder Vampire: (unknown)';
+    return base + `<div style="margin-top:10px">• ${line}</div></div>`;
+  }
+  return base + `</div>`;
 }
 
 /* Player voting UI */
@@ -780,12 +890,10 @@ async function renderPlayerVoting(room, uid, state){
     help.textContent = 'Voting is CLOSED. Final tally:';
     list.innerHTML = display.map(d=>`<div class="vote-item"><div>${d.label}</div></div>`).join('') || '<div class="muted">No candidates.</div>';
     btn.disabled = true;
-    // compute tally
     const tally = {};
     Object.entries(votes).forEach(([voter, choice])=>{
-      // count only votes from alive players
-      const u = users[voter]; const alive = u && !u.dead && !(u.charId && chars[u.charId]?.dead);
-      if (alive) tally[choice] = (tally[choice]||0)+1;
+      const u = users[voter]; const aliveVoter = u && !u.dead && !(u.charId && chars[u.charId]?.dead);
+      if (aliveVoter) tally[choice] = (tally[choice]||0)+1;
     });
     const tallyLines = display.map(d=>`• ${d.label}: <b class="tally">${tally[d.key]||0}</b>`).join('<br>');
     tallyBox.innerHTML = tallyLines || 'No votes.';
@@ -837,13 +945,8 @@ async function adminAuth(){
     if (!ok) throw new Error('Incorrect admin password');
     ADMIN_OK = true;
     localStorage.setItem('mb_room_admin', room);
-    localStorage.setItem('mb_pass_admin_ok', '1');
     out.innerHTML = `<span class="badge success">Admin unlocked</span>`;
-    showAdminTab(true);
-    await updateRoundAndVotingDisplays();
-    await refreshPlayerDropdowns();
-    await refreshCandidateSelectors();
-    await renderAdminTally();
+    await refreshAdminAll();
   }catch(e){
     ADMIN_OK = false;
     out.innerHTML = `<span class="badge danger">Auth failed</span> ${e.message}`;
@@ -851,7 +954,14 @@ async function adminAuth(){
 }
 byId('adminAuthBtn').addEventListener('click', adminAuth);
 function currentAdminRoom(){ return (byId('adminRoom').value||localStorage.getItem('mb_room_admin')||'').toUpperCase(); }
+async function refreshAdminAll(){
+  await updateRoundGameVotingDisplays();
+  await refreshPlayerDropdowns();
+  await refreshCandidateSelectors();
+  await renderAdminTally();
+}
 
+/* Lists render */
 function renderLists(data){
   const chars = data||{};
   const entries = Object.entries(chars);
@@ -868,21 +978,18 @@ byId('loadRoomBtn').addEventListener('click', async ()=>{
   const snap = await db.ref(`rooms/${room}/characters`).get();
   if (!snap.exists()){ byId('adminAuthStatus').innerHTML=`<span class="badge danger">Room not found</span>`; return; }
   renderLists(snap.val());
-  await refreshPlayerDropdowns();
-  await refreshCandidateSelectors();
-  await renderAdminTally();
+  await refreshAdminAll();
 });
 
 byId('watchRoomBtn').addEventListener('click', ()=>{
   if (!ADMIN_OK){ byId('adminAuthStatus').innerHTML=`<span class="badge danger">Unlock Admin first</span>`; return; }
   const room = currentAdminRoom();
   if (liveOff) { liveOff(); liveOff=null; }
-  const ref = db.ref(`rooms/${room}/characters`);
+  const ref = db.ref(`rooms/${room}`);
   const cb = ref.on('value', async snap=> {
-    renderLists(snap.val()||{});
-    await refreshPlayerDropdowns();
-    await refreshCandidateSelectors();
-    await renderAdminTally();
+    const data = snap.val()||{};
+    renderLists(data.characters||{});
+    await refreshAdminAll();
   });
   liveOff = ()=> ref.off('value', cb);
   byId('adminAuthStatus').innerHTML = `<span class="badge">Watching live…</span>`;
@@ -910,10 +1017,7 @@ async function refreshPlayerDropdowns(){
 }
 document.getElementById('tab-admin').addEventListener('click', async ()=>{
   if (!ADMIN_OK) return;
-  await updateRoundAndVotingDisplays();
-  await refreshPlayerDropdowns();
-  await refreshCandidateSelectors();
-  await renderAdminTally();
+  await refreshAdminAll();
 });
 
 /* Assign roles */
@@ -931,7 +1035,6 @@ byId('assignSpecialBtn').addEventListener('click', async ()=>{
 /* Mark Dead/Alive */
 byId('markDeadBtn').addEventListener('click', ()=> toggleDead(true));
 byId('markAliveBtn').addEventListener('click', ()=> toggleDead(false));
-
 async function toggleDead(dead){
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
@@ -943,28 +1046,58 @@ async function toggleDead(dead){
   await db.ref(`rooms/${room}/users/${uid}/dead`).set(dead);
   if (u.charId) await db.ref(`rooms/${room}/characters/${u.charId}/dead`).set(dead);
   await renderAdminTally();
-  await updateRoundAndVotingDisplays();
+  await updateRoundGameVotingDisplays();
   await checkWinConditions(room, dead ? `Marked ${u.name} dead.` : `Marked ${u.name} alive.`);
 }
 
-/* Round & Voting Controls (Admin) */
-async function updateRoundAndVotingDisplays(){
+/* Game / Round / Voting Controls */
+async function getState(room){ return (await db.ref(`rooms/${room}/state`).get()).val()||{}; }
+
+async function updateRoundGameVotingDisplays(){
   const room = currentAdminRoom();
-  const state = await getRoomState(room);
+  const state = await getState(room);
   byId('adminRoundDisplay').value = state.round || 1;
   byId('votingStatusDisplay').value = state.voting?.open ? 'OPEN' : (state.voting?.closed ? 'CLOSED' : '—');
+  byId('gameStateDisplay').value = state.gameStarted ? 'STARTED' : 'WAITING';
 }
+
+byId('startGameBtn').addEventListener('click', async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  await db.ref(`rooms/${room}/state`).set({
+    gameStarted:true,
+    round: state.round || 1,
+    voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null }
+  });
+  await updateRoundGameVotingDisplays();
+  popup('Game Started', 'Players now see objectives, notes, and Mob Justice.');
+});
+
+byId('stopGameBtn').addEventListener('click', async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  await db.ref(`rooms/${room}/state`).set({
+    gameStarted:false,
+    round: state.round || 1,
+    voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null }
+  });
+  await updateRoundGameVotingDisplays();
+  popup('Back to Waiting', 'Players now see only character and role info.');
+});
 
 byId('nextRoundBtn').addEventListener('click', async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
-  const state = await getRoomState(room);
+  const state = await getState(room);
   const next = (state.round||1) + 1;
   await db.ref(`rooms/${room}/state`).set({
+    gameStarted: state.gameStarted || false,
     round: next,
     voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null }
   });
-  await updateRoundAndVotingDisplays();
+  await updateRoundGameVotingDisplays();
   await renderAdminTally();
   await checkWinConditions(room, `Advanced to Round ${next}.`);
 });
@@ -973,14 +1106,14 @@ byId('nextRoundBtn').addEventListener('click', async ()=>{
 byId('openVotingBtn').addEventListener('click', async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
-  const state = await getRoomState(room);
+  const state = await getState(room);
   await db.ref(`rooms/${room}/state/voting`).set({
     open:true, closed:false,
     candidates: state.voting?.candidates || null,
     votes: state.voting?.votes || null,
     endsAt:null
   });
-  await updateRoundAndVotingDisplays(); await renderAdminTally();
+  await updateRoundGameVotingDisplays(); await renderAdminTally();
 });
 
 byId('closeVotingBtn').addEventListener('click', async ()=>{
@@ -993,29 +1126,28 @@ byId('clearVotingBtn').addEventListener('click', async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
   await db.ref(`rooms/${room}/state/voting`).set({ open:false, closed:false, candidates:null, votes:null, endsAt:null });
-  await updateRoundAndVotingDisplays(); await refreshCandidateSelectors(); await renderAdminTally();
+  await updateRoundGameVotingDisplays(); await refreshCandidateSelectors(); await renderAdminTally();
 });
 
 byId('start5minVoteBtn').addEventListener('click', async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
   const endsAt = Date.now() + 5*60*1000;
-  const state = await getRoomState(room);
+  const state = await getState(room);
   await db.ref(`rooms/${room}/state/voting`).set({
     open:true, closed:false,
     candidates: state.voting?.candidates || null,
     votes: state.voting?.votes || null,
     endsAt
   });
-  await updateRoundAndVotingDisplays(); await renderAdminTally();
-  // Local admin watcher to close automatically at expiry
+  await updateRoundGameVotingDisplays(); await renderAdminTally();
   scheduleAutoClose(room, endsAt);
 });
 
 /* Candidate add/remove */
 async function refreshCandidateSelectors(){
   const room = currentAdminRoom();
-  const state = await getRoomState(room);
+  const state = await getState(room);
   const candidates = state.voting?.candidates || {};
   const usersSnap = await db.ref(`rooms/${room}/users`).get();
   const charsSnap = await db.ref(`rooms/${room}/characters`).get();
@@ -1044,7 +1176,6 @@ byId('removeCandidateBtn').addEventListener('click', async ()=>{
   const uid = byId('removeCandidateSelect').value;
   if (!uid) return;
   await db.ref(`rooms/${room}/state/voting/candidates/${uid}`).remove();
-  // clear votes for removed candidate
   const votesSnap = await db.ref(`rooms/${room}/state/voting/votes`).get();
   if (votesSnap.exists()){
     const votes = votesSnap.val();
@@ -1058,7 +1189,7 @@ byId('removeCandidateBtn').addEventListener('click', async ()=>{
 /* Admin Tally */
 async function renderAdminTally(){
   const room = currentAdminRoom();
-  const state = await getRoomState(room);
+  const state = await getState(room);
   const voting = state.voting || {};
   const [usersSnap, charsSnap] = await Promise.all([
     db.ref(`rooms/${room}/users`).get(),
@@ -1085,27 +1216,25 @@ async function renderAdminTally(){
   byId('adminTallyBox').innerHTML = (alive? `<div class="muted">Alive voters: ${alive}</div>` : '') + (lines || 'No votes yet.');
 }
 
-/* Auto close */
+/* Auto close voting */
 function scheduleAutoClose(room, endsAt){
   const ms = Math.max(0, endsAt - Date.now());
   setTimeout(async ()=>{
-    const state = await getRoomState(room);
+    const state = await getState(room);
     if (state.voting?.open && state.voting.endsAt && Date.now() >= state.voting.endsAt){
       await closeVotingAndResolve(room, false);
     }
   }, ms + 1000);
 }
 
-/* Close vote, resolve, eliminate (if ≥50% of alive), popup */
+/* Close vote, resolve, eliminate (≥50% of alive), popup */
 async function closeVotingAndResolve(room, manual){
-  const state = await getRoomState(room);
+  const state = await getState(room);
   const voting = state.voting || {};
   if (!voting.open) return;
-  // close
   await db.ref(`rooms/${room}/state/voting/open`).set(false);
   await db.ref(`rooms/${room}/state/voting/closed`).set(true);
 
-  // compute results
   const [usersSnap, charsSnap] = await Promise.all([
     db.ref(`rooms/${room}/users`).get(),
     db.ref(`rooms/${room}/characters`).get()
@@ -1122,10 +1251,9 @@ async function closeVotingAndResolve(room, manual){
     const aliveVoter = u && !u.dead && !(u.charId && chars[u.charId]?.dead);
     if (aliveVoter) tally[choice] = (tally[choice]||0)+1;
   }
-  // find top
   let bestKey = null, bestCount = -1;
   Object.entries(tally).forEach(([k,c])=>{ if (c>bestCount){ bestKey=k; bestCount=c; }});
-  const needed = Math.ceil(aliveCount * 0.5); // ≥50% threshold
+  const needed = Math.ceil(aliveCount * 0.5);
   let resultHtml = `<div>Alive voters: <b>${aliveCount}</b> • Threshold to eliminate: <b>${needed}</b></div><br>`;
   for (const [k,c] of Object.entries(tally)){
     const u = users[k];
@@ -1133,7 +1261,6 @@ async function closeVotingAndResolve(room, manual){
     resultHtml += `• ${label}: <b class="tally">${c}</b><br>`;
   }
   if (bestKey && bestCount >= needed){
-    // eliminate
     const u = users[bestKey];
     if (u){
       await db.ref(`rooms/${room}/users/${bestKey}/dead`).set(true);
@@ -1143,7 +1270,6 @@ async function closeVotingAndResolve(room, manual){
   }else{
     resultHtml += `<br><b>No elimination.</b>`;
   }
-
   popup('Mob Justice — Results', resultHtml);
   await renderAdminTally();
   await checkWinConditions(room);
@@ -1165,12 +1291,10 @@ async function checkWinConditions(room, extraMsg){
   const aliveVamps = aliveUsers.filter(u=> ['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
   const aliveNonVamps = aliveUsers.filter(u=> !['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
 
-  // Village win: all vampires dead
   if (aliveVamps.length === 0){
     popup('Village Victory', `<div>The Elder and Lesser vampires are dead. The village prevails!${extraMsg? `<br><br><i>${extraMsg}</i>`:''}</div>`);
     return;
   }
-  // Vampire win: parity or rounds > 4 with any vampire alive
   if (aliveVamps.length >= aliveNonVamps.length || (state.round>4 && aliveVamps.length>0)){
     popup('Vampires Triumph', `<div>The night belongs to fangs and shadow.${extraMsg? `<br><br><i>${extraMsg}</i>`:''}</div>`);
   }
@@ -1178,7 +1302,6 @@ async function checkWinConditions(room, extraMsg){
 
 /* CSV Import (Admin) */
 function parseCSV(text){
-  // Minimal CSV parser supporting quotes and commas
   const rows=[]; let cur=''; let row=[]; let inq=false;
   for (let i=0;i<text.length;i++){
     const ch=text[i], nxt=text[i+1];
@@ -1254,61 +1377,23 @@ byId('useDefaultCluesBtn').addEventListener('click', async ()=>{
   byId('csvStatus').textContent='Default clues loaded.';
 });
 
-/* Clues Admin */
-let workingClues = [];
-byId('loadCluesBtn').addEventListener('click', async ()=>{
-  if (!ADMIN_OK){ byId('clueAdminStatus').textContent='Unlock Admin first'; return; }
-  const room = currentAdminRoom();
-  const snap = await db.ref(`rooms/${room}/clues`).get();
-  if (!snap.exists()){
-    workingClues = DEFAULT_CLUES.map(c=>({...c, revealed:false}));
-  }else{
-    workingClues = Object.entries(snap.val()).map(([id,c])=>({id, title:c.title, body:c.body, revealed: !!c.revealed}));
-  }
-  renderClueAdminList();
-  byId('clueAdminStatus').textContent = 'Loaded';
-});
-function renderClueAdminList(){
-  const box = byId('clueAdminList');
-  box.innerHTML = workingClues.map((c,i)=>`
-    <div class="parchment">
-      <div class="row" style="justify-content:space-between">
-        <div class="tag">Clue ${c.id}</div>
-        <label class="row" style="gap:6px"><input type="checkbox" data-ix="${i}" ${c.revealed?'checked':''}/> Reveal</label>
-      </div>
-      <h4>${c.title}</h4>
-      <div>${c.body}</div>
-    </div>
-  `).join('');
-  [...box.querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
-    cb.addEventListener('change',(e)=>{
-      const ix = Number(e.target.getAttribute('data-ix'));
-      workingClues[ix].revealed = e.target.checked;
-    });
-  });
-}
-byId('publishCluesBtn').addEventListener('click', async ()=>{
-  if (!ADMIN_OK){ byId('clueAdminStatus').textContent='Unlock Admin first'; return; }
-  const room = currentAdminRoom();
-  const updates = {}; workingClues.forEach(c=>{ updates[c.id] = {title:c.title, body:c.body, revealed: !!c.revealed}; });
-  await db.ref(`rooms/${room}/clues`).set(updates);
-  byId('clueAdminStatus').textContent = 'Published';
+/* Candidates list (Admin) refresh hook */
+document.getElementById('tab-admin').addEventListener('click', async ()=>{
+  if (!ADMIN_OK) return;
+  await refreshCandidateSelectors();
+  await renderAdminTally();
 });
 
-/* UI collapse for assigned players */
+/* Collapse UI for assigned players (no Active tab anywhere) */
 function collapseToActiveOnly(){
-  ['tab-host','tab-join','tab-clues','tab-admin'].forEach(id=>{
+  ['tab-host','tab-join','tab-clues'].forEach(id=>{
     const el = document.getElementById(id); if (el) el.style.display = 'none';
   });
-  document.getElementById('tab-active').setAttribute('aria-selected','true');
+  // Show only the Active panel
   document.getElementById('panel-active').hidden = false;
   ['panel-host','panel-join','panel-clues','panel-admin'].forEach(id=>{
     const el = document.getElementById(id); if (el) el.hidden = true;
   });
-}
-function gateForAssigned(){
-  const hasChar = !!localStorage.getItem('mb_charId');
-  if (hasChar) collapseToActiveOnly();
 }
 
 /* Prefill and init */
@@ -1318,7 +1403,8 @@ function gateForAssigned(){
   if (n) byId('realName').value = n;
 })();
 document.addEventListener('DOMContentLoaded', ()=>{
-  gateForAssigned();
+  // If a character is already selected, go straight to Active panel.
+  if (localStorage.getItem('mb_charId')) collapseToActiveOnly();
   refreshActive();
 });
 </script>

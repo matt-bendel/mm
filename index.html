@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Moonlit Bandanas — Character & Clue Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0d; --panel:#131316; --ink:#ececf2; --muted:#a1a1aa;
+    --accent:#b11226; --accent2:#e01e37; --ring:0 0 0 2px rgba(224,30,55,.25);
+  }
+  *{box-sizing:border-box} html,body{height:100%}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(224,30,55,.10), transparent 60%),
+      radial-gradient(800px 500px at -10% 80%, rgba(224,30,55,.08), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  header{padding:28px 20px 8px; text-align:center}
+  .title{font-family:Cinzel,serif; font-weight:700; font-size:clamp(26px,3.2vw,40px); text-shadow:0 0 30px rgba(224,30,55,.25)}
+  .subtitle{color:var(--muted); margin-top:6px}
+  .wrap{max-width:1100px; margin:0 auto; padding:20px}
+  .tabs{display:flex; gap:8px; justify-content:center; margin:16px 0 24px; flex-wrap:wrap}
+  .tab{border:1px solid #26262b; background:#121215; color:#d7d7de; padding:10px 14px; border-radius:12px; cursor:pointer}
+  .tab[aria-selected="true"]{background:#201116; border-color:#531018; color:#ffd9dd; box-shadow:0 0 24px rgba(177,18,38,.35)}
+  .panel{background:linear-gradient(180deg,#121215,#0f0f12); border:1px solid #242428; border-radius:16px; padding:18px}
+  .grid{display:grid; gap:16px}
+  @media(min-width:980px){.grid-2{grid-template-columns:1.2fr .8fr}}
+  label{display:block; font-weight:600; margin:12px 0 6px}
+  input, textarea, select{
+    width:100%; background:#0d0d10; border:1px solid #26262b; color:#ececf2; border-radius:12px; padding:10px 12px; outline:none; font-size:15px
+  }
+  input:focus,textarea:focus,select:focus{border-color:#5f101a; box-shadow:var(--ring)}
+  textarea{min-height:140px; resize:vertical}
+  .btn{display:inline-flex; gap:8px; align-items:center; justify-content:center; background:linear-gradient(180deg,var(--accent2),var(--accent)); color:#fff; border:none; padding:11px 16px; border-radius:12px; cursor:pointer; font-weight:700; box-shadow:0 6px 24px rgba(224,30,55,.25)}
+  .btn.secondary{background:#17171b; color:#f0e9eb; border:1px solid #2a2a30; box-shadow:none; font-weight:600}
+  .muted{color:var(--muted); font-size:13px}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .badge{display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #2a2a30; color:#ececf2; font-size:13px; background:#111114}
+  .success{border-color:#224a2b; background:linear-gradient(180deg,#102114,#0d1610); color:#c5f2d1}
+  .danger{border-color:#5a0c15; background:linear-gradient(180deg,#1c0b0d,#12080a); color:#ffd9de}
+  .info{border-color:#0e3f56; background:linear-gradient(180deg,#0b151a,#0a1317); color:#c8e5f3}
+  .divider{height:1px; background:#222226; margin:14px 0}
+  .card{background:linear-gradient(180deg,#121215,#0f0f12); border:1px solid #242428; border-radius:16px; padding:14px}
+  .mono{font-family:ui-monospace,Menlo,Monaco,Consolas,monospace}
+  .center{text-align:center}
+  .pill{padding:6px 10px; border-radius:999px; background:#151518; border:1px solid #2a2a30; font-size:12px}
+
+  /* Parchment clue styling */
+  .parchment{
+    background:#f8f1e1;
+    color:#2a2118;
+    border:1px solid #d4c6a8;
+    border-radius:12px;
+    padding:14px 16px;
+    font-family:"Crimson Text","Times New Roman",serif;
+    box-shadow: 0 8px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(0,0,0,.03);
+    background-image:
+      radial-gradient(1200px 800px at 0% 0%, rgba(190,160,120,.15), transparent 60%),
+      radial-gradient(800px 600px at 100% 100%, rgba(140,110,80,.12), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.03), rgba(0,0,0,.03) 2px, transparent 2px, transparent 4px);
+  }
+  .parchment h4{margin:.3rem 0 .2rem; font-size:18px}
+  .parchment .tag{font-size:12px; color:#6b513d}
+
+  /* Checklist */
+  .todo{display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid #242428; border-radius:12px; margin-top:8px; background:#101014}
+  .todo input[type="checkbox"]{transform:scale(1.2); margin-top:3px}
+  .todo.done{opacity:.7}
+  .kicker{font-family:Cinzel,serif; font-weight:700; letter-spacing:.4px}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">Moonlit Bandanas</div>
+  <div class="subtitle">Password-Protected Character Assignments • Tasks • Clues</div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" role="tablist" aria-label="Moonlit App">
+    <button class="tab" id="tab-host" role="tab" aria-selected="true">Host Setup</button>
+    <button class="tab" id="tab-join" role="tab" aria-selected="false">Join</button>
+    <button class="tab" id="tab-active" role="tab" aria-selected="false">Active Mode</button>
+    <button class="tab" id="tab-clues" role="tab" aria-selected="false">Clues</button>
+    <button class="tab" id="tab-admin" role="tab" aria-selected="false">Admin</button>
+  </nav>
+
+  <!-- HOST SETUP -->
+  <section id="panel-host" class="panel" role="tabpanel" aria-labelledby="tab-host">
+    <div class="grid grid-2">
+      <div>
+        <label>Room Code</label>
+        <input id="roomCode" placeholder="e.g., REVEL-2025" />
+        <div class="muted">Letters/numbers/dashes (3–30 chars). Players must match this exactly.</div>
+
+        <label style="margin-top:12px">Room Password</label>
+        <input id="roomPassword" type="password" placeholder="Set a password for this room" />
+        <div class="muted">Stored as a SHA-256 hash in the database (not plain text).</div>
+
+        <div class="divider"></div>
+
+        <label>Character Pool (one per line)</label>
+        <textarea id="rolePool"></textarea>
+        <div class="muted">Preloaded with the 30 characters. Special roles are assigned via Admin later.</div>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <button class="btn" id="createRoomBtn">Create / Reset Room</button>
+          <button class="btn secondary" id="fillDefaultsBtn">Reset To Default Characters</button>
+        </div>
+        <div id="hostStatus" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <b>What this does</b>
+        <ul>
+          <li>Creates a password-protected room.</li>
+          <li>Seeds the **character pool** (unique claim per player).</li>
+          <li>Players will need **room code + password + real name** to join and get a random character.</li>
+        </ul>
+        <div class="divider"></div>
+        <b>Hosting (free)</b>
+        <p class="muted">Publish this single file on GitHub Pages, Netlify, or Vercel.</p>
+        <div class="divider"></div>
+        <b>Firebase (free Spark tier)</b>
+        <ol>
+          <li>Create a project → Realtime Database (test mode to start).</li>
+          <li>Add a Web App and paste config into <span class="mono">firebaseConfig</span> below.</li>
+          <li>Deploy this file; share the URL, room code, and password.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- JOIN -->
+  <section id="panel-join" class="panel" role="tabpanel" aria-labelledby="tab-join" hidden>
+    <div class="grid">
+      <div>
+        <label>Room Code</label>
+        <input id="joinRoom" placeholder="Enter room code exactly" />
+      </div>
+      <div>
+        <label>Room Password</label>
+        <input id="joinPass" type="password" placeholder="Enter the room password" />
+      </div>
+      <div>
+        <label>Your Real Name</label>
+        <input id="realName" placeholder="e.g., Alex Johnson" />
+      </div>
+      <div class="row">
+        <button class="btn" id="assignBtn">Get My Character</button>
+        <button class="btn secondary" id="revealMineBtn">Reveal Mine Again</button>
+      </div>
+      <div id="assignStatus"></div>
+
+      <div id="myRoleCard" class="card" style="display:none; margin-top:12px">
+        <div class="row"><span class="badge success">Assigned</span></div>
+        <h3 id="roleName" style="margin:8px 0 6px; font-family:Cinzel,serif"></h3>
+        <div class="muted">Locked to your name in this room. See <b>Active Mode</b> to track tasks.</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn secondary" id="copyRoleBtn">Copy to Clipboard</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACTIVE MODE (player) -->
+  <section id="panel-active" class="panel" role="tabpanel" aria-labelledby="tab-active" hidden>
+    <div class="grid">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="gap:12px">
+          <span class="pill" id="activeRoomPill">Room: —</span>
+          <span class="pill" id="activeNamePill">Player: —</span>
+          <span class="pill" id="activeCharPill">Character: —</span>
+          <span class="pill" id="activeRolePill">Special: (none)</span>
+        </div>
+        <button class="btn secondary" id="refreshActiveBtn">Refresh</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid grid-2">
+        <div>
+          <h3 class="kicker">Your Objectives</h3>
+          <div id="todoList" class="muted">—</div>
+        </div>
+        <div>
+          <h3 class="kicker">Notes (private)</h3>
+          <textarea id="notesBox" placeholder="Jot suspects, alibis, or reminders here… (saved only on this device)"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn secondary" id="saveNotesBtn">Save Notes Locally</button>
+            <span class="muted">We don’t upload notes.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLUES (revealed by admin) -->
+  <section id="panel-clues" class="panel" role="tabpanel" aria-labelledby="tab-clues" hidden>
+    <div class="grid">
+      <div class="row" style="gap:12px">
+        <span class="pill">Revealed Clues</span>
+        <button class="btn secondary" id="refreshCluesBtn">Refresh</button>
+      </div>
+      <div id="clueList" class="grid" style="gap:14px; margin-top:8px">
+        <div class="muted">No clues revealed yet.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="panel-admin" class="panel" role="tabpanel" aria-labelledby="tab-admin" hidden>
+    <div class="grid">
+      <div class="card">
+        <b>Admin Access</b>
+        <div class="row" style="gap:12px; margin-top:8px">
+          <div style="flex:1">
+            <label>Room Code</label>
+            <input id="adminRoom" placeholder="Room code" />
+          </div>
+          <div style="flex:1">
+            <label>Room Password</label>
+            <input id="adminPass" type="password" placeholder="Password for this room" />
+          </div>
+          <button class="btn" id="adminAuthBtn">Authenticate</button>
+          <div id="adminAuthStatus"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Characters</h3>
+          <div class="row" style="gap:12px">
+            <button class="btn secondary" id="loadRoomBtn">Load Lists</button>
+            <button class="btn secondary" id="watchRoomBtn">Live Watch</button>
+          </div>
+          <div class="divider"></div>
+          <h4>Unclaimed</h4>
+          <div id="unclaimedBox" class="muted">—</div>
+          <div class="divider"></div>
+          <h4>Claimed</h4>
+          <div id="claimedBox" class="muted">—</div>
+        </div>
+
+        <div class="card">
+          <h3>Assign Special Roles (manual)</h3>
+          <div class="muted">Select a claimed player and assign a special role for tracking.</div>
+          <div class="row" style="gap:12px; margin-top:8px">
+            <select id="playerSelect"><option value="">— select player —</option></select>
+            <select id="specialSelect">
+              <option value="">(none)</option>
+              <option>Elder Vampire</option>
+              <option>Lesser Vampire</option>
+              <option>Thrall</option>
+              <option>Night Warden</option>
+              <option>Mirrorcloak</option>
+              <option>Gravespeaker</option>
+            </select>
+            <button class="btn" id="assignSpecialBtn">Assign</button>
+          </div>
+          <div id="specialStatus" style="margin-top:8px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Reveal Clues</h3>
+        <div class="muted">Toggle which clues are visible to players in the Clues tab.</div>
+        <div class="row" style="gap:12px; margin-top:8px">
+          <button class="btn secondary" id="loadCluesBtn">Load Default Clues</button>
+          <button class="btn" id="publishCluesBtn">Publish Changes</button>
+          <span id="clueAdminStatus" class="muted"></span>
+        </div>
+        <div id="clueAdminList" style="margin-top:10px" class="grid"></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="center muted" style="margin:18px 0 40px">
+    Theme: reds & blacks • Parchment clues • Characters only (special roles assigned in Admin) • Good hunting 🩸
+  </p>
+</div>
+
+<!-- Firebase compat builds -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+/* ===== Tabs ===== */
+const TABS = [
+  {btn:'tab-host',   panel:'panel-host'},
+  {btn:'tab-join',   panel:'panel-join'},
+  {btn:'tab-active', panel:'panel-active'},
+  {btn:'tab-clues',  panel:'panel-clues'},
+  {btn:'tab-admin',  panel:'panel-admin'},
+];
+TABS.forEach(({btn,panel})=>{
+  document.getElementById(btn).addEventListener('click', ()=>{
+    TABS.forEach(x=>{
+      document.getElementById(x.btn).setAttribute('aria-selected', x.btn===btn ? 'true':'false');
+      document.getElementById(x.panel).hidden = x.panel!==panel;
+    });
+  });
+});
+
+/* ===== Default Characters & Objectives ===== */
+const CHARACTERS = [
+"V. M. Pyre — Fire-eater & matchbook collector",
+"Ashen Vale — Traveling apothecary",
+"Gloom Ivy — Lantern carver",
+"Hex Rowan — Fortune-maker with dice",
+"Noct Rune — Night watch scribe",
+"Cinder Wight — Glassblower",
+"Marrow Quinn — Anatomist & sketcher",
+"Ebon Thatch — Innkeeper",
+"Sable Nyx — Perfumer",
+"Thorn Ever — Debt-keeper",
+"Cob Webber — Trap-maker",
+"Hallow Reed — Folk singer",
+"Mist Graves — Sleep-walker",
+"Piper Shade — Flute-seller",
+"Rune Lantern — Tinker of lights",
+"Bramble Kite — Messenger",
+"Frost Morn — Ice seller",
+"Ember Hollow — Candlemaker",
+"Wisp Harrow — Story collector",
+"Crypt Alder — Quartermaster",
+"Omen Lark — Oracle busker",
+"Raven Cask — Brewer of odd ales",
+"Night Jar — Curio dealer",
+"Lumen Wolfe — Town watch volunteer",
+"Patch Wylde — Card-sharp",
+"Echo Vane — Rumor broker",
+"Dusk Mariner — Ferrier of the bog",
+"Ivy Haze — Herb gatherer",
+"Slate Crowe — Record keeper",
+"Gourd Wilder — Mask artisan"
+];
+
+// Simple 4-task set each player can track (lightweight & flexible)
+const DEFAULT_TASKS = [
+  "Learn two names and one hobby.",
+  "Trade a small trinket or token with someone.",
+  "Share one rumor or clue you’ve heard.",
+  "Publicly vouch for or accuse exactly one person."
+];
+
+/* ===== Default Clues (static, prewritten lore) ===== */
+const DEFAULT_CLUES = [
+  {id:"E1", title:"The Dimming of Candles", body:"In the glassblower’s stall, a trio of candles guttered all at once, as though a mouth had drawn in the room’s breath. Witnesses swore the figure who passed by wore a ring that drank the light. They left no soot, only a whisper of clove."},
+  {id:"E2", title:"The Whispering Step", body:"Near the square of empty masks, a watcher heard footfalls that seemed to land after their own echoes. The gait was even, decisive, and oddly weightless—as if the night itself cushioned each stride."},
+  {id:"E3", title:"Threads by the Well", body:"By the old wishing well, a single thread of deep red snagged on weathered stone, the shade of a harvest moon. No cloak nearby bore that hue—perhaps it belonged to a sash tied close to the heart."},
+  {id:"E4", title:"The Breath That Wasn’t", body:"Flutes lay in their case, and yet a mourning note hung in the air as if blown by no mouth at all. The player who lingered exhaled fog though the night was warm, and smiled without teeth."},
+  {id:"E5", title:"The Lantern That Blinked", body:"A tinker’s lantern fluttered near a laughing circle—then steadied when a single figure drew near and asked no questions. Lies make it flicker, the tinker swears."},
+  {id:"E6", title:"A Toast to Nowhere", body:"Someone raised an empty cup and murmured a phrase not quite language, not quite song. Those within earshot forgot a name they had just learned. The smell of old cellars followed."},
+  {id:"E7", title:"Left Hand of Dusk", body:"Chalk tallies were scrawled backward on a ledger margin, lines neat yet mirrored. Whoever wrote them favored the left hand and the calm of twilight."},
+  {id:"E8", title:"The Silver Coin Gone Cold", body:"A coin traded thrice in an hour turned cold enough to mist a mirror. The last to hold it tucked it away with clinical care, as though cataloging a specimen."},
+  {id:"L1", title:"The Heir in the Crowd", body:"When the bells tolled, a shadow took shelter in another’s laughter. The heir does not stand alone; they orbit a brighter star to dim their edges."},
+  {id:"L2", title:"The Smile That Stops", body:"A chuckle rang out, crisp as cracked ice, but ended sharply—habit, not humor. Hands drifted to pockets where keys or coins clicked in nervous code."},
+  {id:"L3", title:"Scent of Wet Stone", body:"On the path to the bog ferries, a scent of wet stone trailed someone who avoids shallow water, preferring docks’ deeper quiet."},
+  {id:"L4", title:"The Double Shadow", body:"Two silhouettes overlapped beneath a single lantern: one tall and still, the other shifting, impatient. Only one turned when hailed."},
+  {id:"L5", title:"The Hat with No Owner", body:"A brim with a feather of ash-gray was left on a chair that always faces the door. No one claimed it—but more than one person looked too long at its seat."},
+  {id:"L6", title:"Ink Under the Nail", body:"A knuckle brushed paper and left a crescent of black under the nail—old ink that no wash could fully banish."},
+  {id:"D1", title:"Red Herring: The Laughing Mask", body:"A maskmaker insisted a mask smiled on its own when a brewer sang off-key. Sweet nonsense, perhaps, or theater."},
+  {id:"D2", title:"Red Herring: The Garlic Fable", body:"Someone swore they saw a cloaked patron recoil from garlic… but the cloves were candied. Theatrical groaning followed."}
+];
+
+/* ===== Firebase ===== */
+// TODO: replace with your Firebase web app config
+const firebaseConfig = {
+  apiKey: "REPLACE_ME",
+  authDomain: "REPLACE_ME.firebaseapp.com",
+  databaseURL: "https://REPLACE_ME-default-rtdb.firebaseio.com",
+  projectId: "REPLACE_ME",
+  storageBucket: "REPLACE_ME.appspot.com",
+  messagingSenderId: "REPLACE_ME",
+  appId: "REPLACE_ME"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* Data model:
+rooms/{ROOM}/
+  passHash: string
+  createdAt: number
+  characters/{id}:
+    name: string
+    claimedBy: string|null
+    claimedAt: number|null
+  users/{uid}:
+    name: string
+    charId: string
+    specialRole: string|null
+    tasks: [ {text, done} ]
+  clues/{clueId}:
+    title, body, revealed: bool
+*/
+
+/* ===== Helpers ===== */
+const hashSHA256 = async (text)=>{
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+};
+const byId = (id)=>document.getElementById(id);
+const setPill = (id, text)=> byId(id).textContent = text;
+
+/* ===== Host Setup ===== */
+const rolePoolEl = byId('rolePool');
+byId('fillDefaultsBtn').addEventListener('click', ()=>{
+  rolePoolEl.value = CHARACTERS.join("\n");
+});
+byId('fillDefaultsBtn').click();
+
+byId('createRoomBtn').addEventListener('click', async ()=>{
+  const codeRaw = (byId('roomCode').value||'').trim();
+  const passRaw = (byId('roomPassword').value||'').trim();
+  const hostStatus = byId('hostStatus');
+  if (!/^[A-Za-z0-9-]{3,30}$/.test(codeRaw)){
+    hostStatus.innerHTML = `<span class="badge danger">Invalid room code</span>`;
+    return;
+  }
+  if (!passRaw || passRaw.length < 4){
+    hostStatus.innerHTML = `<span class="badge danger">Password too short</span>`;
+    return;
+  }
+  const code = codeRaw.toUpperCase();
+  const passHash = await hashSHA256(passRaw);
+  const lines = (rolePoolEl.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const unique = [...new Set(lines)];
+  if (!unique.length){
+    hostStatus.innerHTML = `<span class="badge danger">No characters provided</span>`;
+    return;
+  }
+  const chars = {};
+  unique.forEach((name, i)=>{
+    const id = 'c_'+i.toString().padStart(3,'0');
+    chars[id] = {name, claimedBy:null, claimedAt:null};
+  });
+  // seed default clues (revealed=false)
+  const clues = {};
+  DEFAULT_CLUES.forEach(c=>{
+    clues[c.id] = {title:c.title, body:c.body, revealed:false};
+  });
+  try{
+    await db.ref(`rooms/${code}`).set({
+      passHash, createdAt: Date.now(),
+      characters: chars,
+      users: null,
+      clues
+    });
+    hostStatus.innerHTML = `<span class="badge success">Room ready</span> Share code <b class="mono">${code}</b> + password.`;
+    localStorage.setItem('mb_room_host', code);
+  }catch(e){
+    hostStatus.innerHTML = `<span class="badge danger">Error</span> ${e.message}`;
+  }
+});
+
+/* ===== Join / Claim Character (Password-checked) ===== */
+function saveLocal(room,name,charId,charName){
+  localStorage.setItem('mb_room', room);
+  localStorage.setItem('mb_name', name);
+  localStorage.setItem('mb_charId', charId);
+  localStorage.setItem('mb_charName', charName);
+}
+function getUid(room,name){ return btoa(`${name}::${room}`).replace(/=+$/,''); }
+
+async function verifyRoomPassword(room, pass){
+  const ref = db.ref(`rooms/${room}/passHash`);
+  const snap = await ref.get();
+  if (!snap.exists()) throw new Error('Room not found');
+  const passHash = snap.val();
+  const tryHash = await hashSHA256(pass);
+  if (tryHash !== passHash) throw new Error('Incorrect password');
+  return true;
+}
+
+async function claimCharacter(room, pass, realName){
+  const r = room.toUpperCase();
+  await verifyRoomPassword(r, pass);
+
+  const rolesSnap = await db.ref(`rooms/${r}/characters`).get();
+  if (!rolesSnap.exists()) throw new Error('No characters in this room');
+  const entries = Object.entries(rolesSnap.val());
+  const unclaimed = entries.filter(([id,c])=>!c.claimedBy).map(([id,c])=>({id,name:c.name}));
+  if (!unclaimed.length) throw new Error('All characters are taken');
+
+  const pick = unclaimed[Math.floor(Math.random()*unclaimed.length)];
+  const ref = db.ref(`rooms/${r}/characters/${pick.id}`);
+
+  // transactional lock
+  const res = await ref.transaction(curr=>{
+    if (!curr) return curr;
+    if (curr.claimedBy) return; // already taken
+    return {...curr, claimedBy: realName, claimedAt: Date.now()};
+  }, {applyLocally:false});
+  if (!res.committed) return claimCharacter(r, pass, realName); // race: retry once
+
+  const uid = getUid(r, realName);
+  // seed user with default tasks if new
+  await db.ref(`rooms/${r}/users/${uid}`).transaction(curr=>{
+    if (curr) return curr;
+    return {
+      name: realName,
+      charId: pick.id,
+      specialRole: null,
+      tasks: DEFAULT_TASKS.map(t=>({text:t, done:false}))
+    };
+  });
+
+  saveLocal(r, realName, pick.id, pick.name);
+  return pick.name;
+}
+
+byId('assignBtn').addEventListener('click', async ()=>{
+  const room = (byId('joinRoom').value||'').trim();
+  const pass = (byId('joinPass').value||'').trim();
+  const name = (byId('realName').value||'').trim();
+  const status = byId('assignStatus');
+  if (!room || !pass || !name){
+    status.innerHTML = `<span class="badge danger">Enter room, password, and your name</span>`;
+    return;
+  }
+  status.textContent = 'Assigning…';
+  try{
+    const charName = await claimCharacter(room, pass, name);
+    status.innerHTML = `<span class="badge success">Assigned</span>`;
+    byId('roleName').textContent = `${charName} — assigned to ${name}`;
+    byId('myRoleCard').style.display = '';
+  }catch(e){
+    status.innerHTML = `<span class="badge danger">Error</span> ${e.message}`;
+  }
+});
+
+byId('revealMineBtn').addEventListener('click', async ()=>{
+  const room = (byId('joinRoom').value||'').trim().toUpperCase();
+  const pass = (byId('joinPass').value||'').trim();
+  const name = (byId('realName').value||'').trim();
+  const status = byId('assignStatus');
+  if (!room || !pass || !name){ status.innerHTML=`<span class="badge danger">Enter room, password, and name</span>`; return; }
+  try{
+    await verifyRoomPassword(room, pass);
+    const uid = getUid(room, name);
+    const uSnap = await db.ref(`rooms/${room}/users/${uid}`).get();
+    if (!uSnap.exists()){ status.innerHTML=`<span class="badge danger">No prior assignment</span>`; return; }
+    const {charId} = uSnap.val();
+    const rSnap = await db.ref(`rooms/${room}/characters/${charId}`).get();
+    const charName = rSnap.exists() ? rSnap.val().name : '(unknown)';
+    saveLocal(room, name, charId, charName);
+    byId('roleName').textContent = `${charName} — assigned to ${name}`;
+    byId('myRoleCard').style.display = '';
+    status.innerHTML = `<span class="badge success">Found</span>`;
+  }catch(e){
+    status.innerHTML = `<span class="badge danger">Error</span> ${e.message}`;
+  }
+});
+
+byId('copyRoleBtn').addEventListener('click', async ()=>{
+  const txt = byId('roleName').textContent;
+  try{ await navigator.clipboard.writeText(txt); }catch{}
+  alert('Copied:\n'+txt);
+});
+
+/* ===== Active Mode (player) ===== */
+function loadLocalIdentity(){
+  return {
+    room: localStorage.getItem('mb_room') || '',
+    name: localStorage.getItem('mb_name') || '',
+    charId: localStorage.getItem('mb_charId') || '',
+    charName: localStorage.getItem('mb_charName') || '',
+  };
+}
+async function refreshActive(){
+  const {room,name,charId,charName} = loadLocalIdentity();
+  setPill('activeRoomPill', `Room: ${room||'—'}`);
+  setPill('activeNamePill', `Player: ${name||'—'}`);
+  setPill('activeCharPill', `Character: ${charName||'—'}`);
+
+  if (!room || !name){ byId('todoList').innerHTML = '—'; setPill('activeRolePill','Special: (none)'); return; }
+  const uid = getUid(room, name);
+  const userSnap = await db.ref(`rooms/${room}/users/${uid}`).get();
+  if (!userSnap.exists()){ byId('todoList').innerHTML='—'; setPill('activeRolePill','Special: (none)'); return; }
+  const u = userSnap.val();
+  setPill('activeRolePill', `Special: ${u.specialRole || '(none)'}`);
+  const list = (u.tasks||[]).map((t,i)=>`
+    <div class="todo ${t.done?'done':''}">
+      <input type="checkbox" data-ix="${i}" ${t.done?'checked':''}/>
+      <div>${t.text}</div>
+    </div>`).join('');
+  byId('todoList').innerHTML = list || '<div class="muted">No tasks found.</div>';
+  // attach checkbox handlers
+  [...byId('todoList').querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
+    cb.addEventListener('change', async (e)=>{
+      const ix = Number(e.target.getAttribute('data-ix'));
+      await db.ref(`rooms/${room}/users/${uid}/tasks/${ix}/done`).set(e.target.checked);
+      refreshActive();
+    });
+  });
+}
+byId('refreshActiveBtn').addEventListener('click', refreshActive);
+
+// private notes (local only)
+byId('saveNotesBtn').addEventListener('click', ()=>{
+  const {room,name} = loadLocalIdentity();
+  if (!room || !name){ alert('Join first so we can tag notes to your identity.'); return; }
+  const key = `mb_notes_${room}_${name}`;
+  localStorage.setItem(key, byId('notesBox').value);
+  alert('Notes saved (local only).');
+});
+(function loadNotesOnTabOpen(){
+  document.getElementById('tab-active').addEventListener('click', ()=>{
+    const {room,name} = loadLocalIdentity();
+    const key = `mb_notes_${room}_${name}`;
+    byId('notesBox').value = localStorage.getItem(key) || '';
+    refreshActive();
+  });
+})();
+
+/* ===== Clues (players) ===== */
+async function renderClues(){
+  const room = localStorage.getItem('mb_room') || (byId('joinRoom').value||'').trim().toUpperCase();
+  const list = byId('clueList');
+  if (!room){ list.innerHTML = '<div class="muted">Join a room first.</div>'; return; }
+  const snap = await db.ref(`rooms/${room}/clues`).get();
+  if (!snap.exists()){ list.innerHTML = '<div class="muted">No clues seeded.</div>'; return; }
+  const clues = Object.entries(snap.val()).filter(([id,c])=>c.revealed);
+  if (!clues.length){ list.innerHTML = '<div class="muted">No clues revealed yet.</div>'; return; }
+  list.innerHTML = clues.map(([id,c])=>`
+    <article class="parchment">
+      <div class="tag">Clue ${id}</div>
+      <h4>${c.title}</h4>
+      <div>${c.body}</div>
+    </article>
+  `).join('');
+}
+byId('refreshCluesBtn').addEventListener('click', renderClues);
+document.getElementById('tab-clues').addEventListener('click', renderClues);
+
+/* ===== Admin ===== */
+let ADMIN_OK = false;
+async function adminAuth(){
+  const room = (byId('adminRoom').value||'').trim().toUpperCase();
+  const pass = (byId('adminPass').value||'').trim();
+  const out = byId('adminAuthStatus');
+  try{
+    await verifyRoomPassword(room, pass);
+    ADMIN_OK = true;
+    localStorage.setItem('mb_room_admin', room);
+    localStorage.setItem('mb_pass_admin', pass);
+    out.innerHTML = `<span class="badge success">Authenticated</span>`;
+  }catch(e){
+    ADMIN_OK = false;
+    out.innerHTML = `<span class="badge danger">Auth failed</span> ${e.message}`;
+  }
+}
+byId('adminAuthBtn').addEventListener('click', adminAuth);
+
+function currentAdminRoom(){ return (byId('adminRoom').value||localStorage.getItem('mb_room_admin')||'').toUpperCase(); }
+function currentAdminPass(){ return (byId('adminPass').value||localStorage.getItem('mb_pass_admin')||''); }
+
+function renderLists(data){
+  const chars = data||{};
+  const entries = Object.entries(chars);
+  const un = entries.filter(([id,c])=>!c.claimedBy).map(([id,c])=>`• ${c.name}`).join("<br>") || '—';
+  const cl = entries.filter(([id,c])=>c.claimedBy).map(([id,c])=>`• <b>${c.name}</b> <span class="muted">→ ${c.claimedBy}</span>`).join("<br>") || '—';
+  byId('unclaimedBox').innerHTML = un;
+  byId('claimedBox').innerHTML = cl;
+}
+let liveOff = null;
+byId('loadRoomBtn').addEventListener('click', async ()=>{
+  if (!ADMIN_OK){ byId('adminAuthStatus').innerHTML=`<span class="badge danger">Authenticate first</span>`; return; }
+  const room = currentAdminRoom();
+  const snap = await db.ref(`rooms/${room}/characters`).get();
+  if (!snap.exists()){ byId('adminAuthStatus').innerHTML=`<span class="badge danger">Room not found</span>`; return; }
+  renderLists(snap.val());
+});
+byId('watchRoomBtn').addEventListener('click', ()=>{
+  if (!ADMIN_OK){ byId('adminAuthStatus').innerHTML=`<span class="badge danger">Authenticate first</span>`; return; }
+  const room = currentAdminRoom();
+  if (liveOff) { liveOff(); liveOff=null; }
+  const ref = db.ref(`rooms/${room}/characters`);
+  const cb = ref.on('value', snap=> renderLists(snap.val()||{}) );
+  liveOff = ()=> ref.off('value', cb);
+  byId('adminAuthStatus').innerHTML = `<span class="badge">Watching live…</span>`;
+});
+
+/* Assign special roles */
+async function refreshPlayerDropdown(){
+  const room = currentAdminRoom();
+  const usersSnap = await db.ref(`rooms/${room}/users`).get();
+  const sel = byId('playerSelect');
+  sel.innerHTML = '<option value="">— select player —</option>';
+  if (!usersSnap.exists()) return;
+  const users = usersSnap.val();
+  Object.entries(users).forEach(([uid, u])=>{
+    const label = `${u.name} — ${u.charId||'no-char'}`;
+    const opt = document.createElement('option');
+    opt.value = uid; opt.textContent = label;
+    sel.appendChild(opt);
+  });
+}
+document.getElementById('tab-admin').addEventListener('click', refreshPlayerDropdown);
+
+byId('assignSpecialBtn').addEventListener('click', async ()=>{
+  if (!ADMIN_OK){ byId('specialStatus').innerHTML=`<span class="badge danger">Authenticate</span>`; return; }
+  const room = currentAdminRoom();
+  const uid = byId('playerSelect').value;
+  const role = byId('specialSelect').value || null;
+  if (!uid){ byId('specialStatus').innerHTML=`<span class="badge danger">Pick a player</span>`; return; }
+  await db.ref(`rooms/${room}/users/${uid}/specialRole`).set(role);
+  byId('specialStatus').innerHTML = `<span class="badge success">Saved</span>`;
+});
+
+/* Reveal clues in Admin */
+let workingClues = [];
+byId('loadCluesBtn').addEventListener('click', async ()=>{
+  if (!ADMIN_OK){ byId('clueAdminStatus').textContent='Authenticate first'; return; }
+  const room = currentAdminRoom();
+  const snap = await db.ref(`rooms/${room}/clues`).get();
+  if (!snap.exists()){
+    workingClues = DEFAULT_CLUES.map(c=>({...c, revealed:false}));
+  }else{
+    workingClues = Object.entries(snap.val()).map(([id,c])=>({id, title:c.title, body:c.body, revealed: !!c.revealed}));
+  }
+  renderClueAdminList();
+  byId('clueAdminStatus').textContent = 'Loaded';
+});
+function renderClueAdminList(){
+  const box = byId('clueAdminList');
+  box.innerHTML = workingClues.map((c,i)=>`
+    <div class="parchment">
+      <div class="row" style="justify-content:space-between">
+        <div class="tag">Clue ${c.id}</div>
+        <label class="row" style="gap:6px"><input type="checkbox" data-ix="${i}" ${c.revealed?'checked':''}/> Reveal</label>
+      </div>
+      <h4>${c.title}</h4>
+      <div>${c.body}</div>
+    </div>
+  `).join('');
+  [...box.querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
+    cb.addEventListener('change',(e)=>{
+      const ix = Number(e.target.getAttribute('data-ix'));
+      workingClues[ix].revealed = e.target.checked;
+    });
+  });
+}
+byId('publishCluesBtn').addEventListener('click', async ()=>{
+  if (!ADMIN_OK){ byId('clueAdminStatus').textContent='Authenticate first'; return; }
+  const room = currentAdminRoom();
+  const updates = {};
+  workingClues.forEach(c=>{
+    updates[c.id] = {title:c.title, body:c.body, revealed: !!c.revealed};
+  });
+  await db.ref(`rooms/${room}/clues`).set(updates);
+  byId('clueAdminStatus').textContent = 'Published';
+});
+
+/* ===== Free hosting quick steps (FYI)
+1) Paste your Firebase config above.
+2) Push this file to a GitHub repo → Settings → Pages → Deploy from Branch (main).
+   OR drag-drop to Netlify / Vercel.
+3) Share URL + Room Code + Password. Host seeds room; players Join; Admin manages roles & clues.
+===== */
+</script>
+</body>
+</html>

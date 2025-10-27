@@ -44,7 +44,6 @@
   .badge{display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid #2a2a30; color:#ececf2; font-size:13px; background:#111114}
   .success{border-color:#224a2b; background:linear-gradient(180deg,#102114,#0d1610); color:#c5f2d1}
   .danger{border-color:#5a0c15; background:linear-gradient(180deg,#1c0b0d,#12080a); color:#ffd9de}
-  .info{border-color:#0e3f56; background:linear-gradient(180deg,#0b151a,#0a1317); color:#c8e5f3}
   .divider{height:1px; background:#222226; margin:14px 0}
   .card{background:linear-gradient(180deg,#121215,#0f0f12); border:1px solid #242428; border-radius:16px; padding:14px}
   .mono{font-family:ui-monospace,Menlo,Monaco,Consolas,monospace}
@@ -108,7 +107,6 @@
   <nav class="tabs" role="tablist" aria-label="Moonlit App" id="topTabs">
     <button class="tab" id="tab-host" role="tab" aria-selected="true">Host Setup</button>
     <button class="tab" id="tab-join" role="tab" aria-selected="false">Join</button>
-    <!-- No "Active Mode" tab for players -->
     <button class="tab" id="tab-clues" role="tab" aria-selected="false">Clues</button>
     <button class="tab" id="tab-admin" role="tab" aria-selected="false">Admin</button>
   </nav>
@@ -194,7 +192,7 @@
         <div class="row" style="gap:12px">
           <span class="pill" id="activeRoomPill">Room: —</span>
           <span class="pill" id="activeNamePill">Player: —</span>
-          <span class="pill" id="activeCharPill">Character: —</span>
+          <!-- (Character pill removed by request) -->
           <span class="pill" id="roundPill">Round: —</span>
           <span class="pill" id="voteStatusPill">Vote: —</span>
           <span class="pill" id="voteCountdownPill">⏳ —</span>
@@ -269,6 +267,7 @@
   <!-- ADMIN -->
   <section id="panel-admin" class="panel" role="tabpanel" aria-labelledby="tab-admin" hidden>
     <div class="grid">
+      <!-- Admin gate -->
       <div class="card">
         <b>Admin Access</b>
         <div class="row" style="gap:12px; margin-top:8px">
@@ -285,121 +284,120 @@
         </div>
       </div>
 
-      <div class="grid grid-2">
+      <!-- Hidden until admin unlocks -->
+      <div id="adminBody" hidden>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>Characters</h3>
+            <div class="row" style="gap:12px; flex-wrap:wrap">
+              <button class="btn secondary" id="loadRoomBtn">Load Lists</button>
+              <button class="btn secondary" id="watchRoomBtn">Live Watch</button>
+              <select id="deadToggleSelect"><option value="">— select claimed player —</option></select>
+              <button class="btn" id="markDeadBtn">Mark Dead</button>
+              <button class="btn secondary" id="markAliveBtn">Mark Alive</button>
+            </div>
+            <div class="divider"></div>
+            <h4>Unclaimed</h4>
+            <div id="unclaimedBox" class="muted">—</div>
+            <div class="divider"></div>
+            <h4>Claimed</h4>
+            <div id="claimedBox" class="muted">—</div>
+          </div>
+
+          <div class="card">
+            <h3>Assign Special Roles</h3>
+            <div class="muted">Select a claimed player and assign.</div>
+            <div class="row" style="gap:12px; margin-top:8px">
+              <select id="playerSelect"><option value="">— select player —</option></select>
+              <select id="specialSelect">
+                <option value="">(none)</option>
+                <option>Elder Vampire</option>
+                <option>Lesser Vampire</option>
+                <option>Thrall</option>
+                <option>Night Warden</option>
+                <option>Mirrorcloak</option>
+                <option>Gravespeaker</option>
+              </select>
+              <button class="btn" id="assignSpecialBtn">Assign</button>
+            </div>
+            <div id="specialStatus" style="margin-top:8px"></div>
+          </div>
+        </div>
+
+        <!-- ROUND, GAME & VOTING CONTROLS -->
         <div class="card">
-          <h3>Characters</h3>
-          <div class="row" style="gap:12px; flex-wrap:wrap">
-            <button class="btn secondary" id="loadRoomBtn">Load Lists</button>
-            <button class="btn secondary" id="watchRoomBtn">Live Watch</button>
-            <select id="deadToggleSelect"><option value="">— select claimed player —</option></select>
-            <button class="btn" id="markDeadBtn">Mark Dead</button>
-            <button class="btn secondary" id="markAliveBtn">Mark Alive</button>
+          <h3>Game, Round & Mob Justice Controls</h3>
+          <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
+            <div>
+              <label>Game State</label>
+              <input id="gameStateDisplay" disabled />
+            </div>
+            <button class="btn" id="startGameBtn">Start Game</button>
+            <button class="btn secondary" id="stopGameBtn">Back to Waiting</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row" style="gap:10px; align-items:flex-end">
+            <div>
+              <label>Round</label>
+              <input id="adminRoundDisplay" disabled />
+            </div>
+            <button class="btn" id="nextRoundBtn">Advance to Next Round</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
+            <div>
+              <label>Voting Status</label>
+              <input id="votingStatusDisplay" disabled />
+            </div>
+            <button class="btn secondary" id="start5minVoteBtn">Start 5-Minute Vote</button>
+            <button class="btn secondary" id="openVotingBtn">Open Voting</button>
+            <button class="btn secondary" id="closeVotingBtn">Close Voting</button>
+            <button class="btn secondary" id="clearVotingBtn">Clear Candidates & Votes</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
+            <select id="candidatePlayerSelect"><option value="">— add candidate (claimed players) —</option></select>
+            <button class="btn" id="addCandidateBtn">Add Candidate</button>
+            <select id="removeCandidateSelect"><option value="">— remove candidate —</option></select>
+            <button class="btn secondary" id="removeCandidateBtn">Remove</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div id="adminTallyBox" class="muted">No votes yet.</div>
+        </div>
+
+        <!-- CSV IMPORT -->
+        <div class="card">
+          <h3>Import via CSV</h3>
+          <div class="row" style="gap:14px; align-items:flex-end; flex-wrap:wrap">
+            <div>
+              <label>Characters CSV (name,description)</label>
+              <input id="csvChars" type="file" accept=".csv" />
+            </div>
+            <button class="btn" id="importCharsBtn">Import Characters</button>
+            <button class="btn secondary" id="useDefaultCharsBtn">Use Default Characters</button>
           </div>
           <div class="divider"></div>
-          <h4>Unclaimed</h4>
-          <div id="unclaimedBox" class="muted">—</div>
-          <div class="divider"></div>
-          <h4>Claimed</h4>
-          <div id="claimedBox" class="muted">—</div>
-        </div>
-
-        <div class="card">
-          <h3>Assign Special Roles</h3>
-          <div class="muted">Select a claimed player and assign.</div>
-          <div class="row" style="gap:12px; margin-top:8px">
-            <select id="playerSelect"><option value="">— select player —</option></select>
-            <select id="specialSelect">
-              <option value="">(none)</option>
-              <option>Elder Vampire</option>
-              <option>Lesser Vampire</option>
-              <option>Thrall</option>
-              <option>Night Warden</option>
-              <option>Mirrorcloak</option>
-              <option>Gravespeaker</option>
-            </select>
-            <button class="btn" id="assignSpecialBtn">Assign</button>
+          <div class="row" style="gap:14px; align-items:flex-end; flex-wrap:wrap">
+            <div>
+              <label>Clues CSV (id,title,body)</label>
+              <input id="csvClues" type="file" accept=".csv" />
+            </div>
+            <button class="btn" id="importCluesBtn">Import Clues</button>
+            <button class="btn secondary" id="useDefaultCluesBtn">Use Default Clues</button>
           </div>
-          <div id="specialStatus" style="margin-top:8px"></div>
+          <div class="muted" id="csvStatus" style="margin-top:8px"></div>
         </div>
-      </div>
-
-      <!-- ROUND, GAME & VOTING CONTROLS -->
-      <div class="card">
-        <h3>Game, Round & Mob Justice Controls</h3>
-        <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
-          <div>
-            <label>Game State</label>
-            <input id="gameStateDisplay" disabled />
-          </div>
-          <button class="btn" id="startGameBtn">Start Game</button>
-          <button class="btn secondary" id="stopGameBtn">Back to Waiting</button>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="row" style="gap:10px; align-items:flex-end">
-          <div>
-            <label>Round</label>
-            <input id="adminRoundDisplay" disabled />
-          </div>
-          <button class="btn" id="nextRoundBtn">Advance to Next Round</button>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
-          <div>
-            <label>Voting Status</label>
-            <input id="votingStatusDisplay" disabled />
-          </div>
-          <button class="btn secondary" id="start5minVoteBtn">Start 5-Minute Vote</button>
-          <button class="btn secondary" id="openVotingBtn">Open Voting</button>
-          <button class="btn secondary" id="closeVotingBtn">Close Voting</button>
-          <button class="btn secondary" id="clearVotingBtn">Clear Candidates & Votes</button>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
-          <select id="candidatePlayerSelect"><option value="">— add candidate (claimed players) —</option></select>
-          <button class="btn" id="addCandidateBtn">Add Candidate</button>
-          <select id="removeCandidateSelect"><option value="">— remove candidate —</option></select>
-          <button class="btn secondary" id="removeCandidateBtn">Remove</button>
-        </div>
-
-        <div class="divider"></div>
-
-        <div id="adminTallyBox" class="muted">No votes yet.</div>
-      </div>
-
-      <!-- CSV IMPORT -->
-      <div class="card">
-        <h3>Import via CSV</h3>
-        <div class="row" style="gap:14px; align-items:flex-end; flex-wrap:wrap">
-          <div>
-            <label>Characters CSV (name,description)</label>
-            <input id="csvChars" type="file" accept=".csv" />
-          </div>
-          <button class="btn" id="importCharsBtn">Import Characters</button>
-          <button class="btn secondary" id="useDefaultCharsBtn">Use Default Characters</button>
-        </div>
-        <div class="divider"></div>
-        <div class="row" style="gap:14px; align-items:flex-end; flex-wrap:wrap">
-          <div>
-            <label>Clues CSV (id,title,body)</label>
-            <input id="csvClues" type="file" accept=".csv" />
-          </div>
-          <button class="btn" id="importCluesBtn">Import Clues</button>
-          <button class="btn secondary" id="useDefaultCluesBtn">Use Default Clues</button>
-        </div>
-        <div class="muted" id="csvStatus" style="margin-top:8px"></div>
       </div>
     </div>
   </section>
-
-  <p class="center muted" style="margin:18px 0 40px">
-    Theme: reds & blacks • Burned parchment clues • Mob Justice voting • Good hunting 🩸
-  </p>
 </div>
 
 <!-- Result modal -->
@@ -415,7 +413,15 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 
 <script>
-/* Tabs */
+/* =========================
+   Debug & Config
+========================= */
+// When true, cookies are NOT written/read (easier multi-tab testing).
+const DEBUG_NO_COOKIES = false;
+
+/* =========================
+   Tabs
+========================= */
 const TABS = [
   {btn:'tab-host',   panel:'panel-host'},
   {btn:'tab-join',   panel:'panel-join'},
@@ -428,44 +434,51 @@ TABS.forEach(({btn,panel})=>{
       document.getElementById(x.btn).setAttribute('aria-selected', x.btn===btn ? 'true':'false');
       document.getElementById(x.panel).hidden = x.panel!==panel;
     });
-    // Keep Active panel hidden unless explicitly entering Active mode
+    // Only unhide tabs if either admin is unlocked OR player has no character (so Active mode stays tab-less).
+    const isAdminUnlocked = localStorage.getItem('mb_is_admin') === '1';
+    const hasChar = !!localStorage.getItem('mb_charId');
+    if (isAdminUnlocked || !hasChar) {
+      document.getElementById('topTabs').classList.remove('hidden');
+    }
+    // Never auto-show Active panel on tab click
     document.getElementById('panel-active').hidden = true;
-    document.getElementById('topTabs').classList.remove('hidden');
   });
 });
 
-/* Character defaults with cleaner bios */
+/* =========================
+   Characters (longer bios)
+========================= */
 const DEFAULT_CHAR_OBJS = [
-  {name:"V. M. Pyre", desc:"A traveling fire performer who collects matchbooks; friends with Raven Cask and often helps Ember Hollow test new candles."},
-  {name:"Ashen Vale", desc:"A practical apothecary; checks in on Mist Graves and trades herbs with Ivy Haze."},
-  {name:"Gloom Ivy", desc:"A lantern carver; buys glass from Cinder Wight and swaps ideas with Sable Nyx."},
-  {name:"Hex Rowan", desc:"A confident games host at Ebon Thatch’s inn; partners with Patch Wylde for fair play."},
-  {name:"Noct Rune", desc:"A quiet night-note taker; compares routes with Lumen Wolfe and files summaries with Slate Crowe."},
-  {name:"Cinder Wight", desc:"A glassblower; supplies Gloom Ivy with panes and Ember Hollow with jars."},
-  {name:"Marrow Quinn", desc:"An anatomy sketcher; consults Ashen Vale and coordinates storage with Crypt Alder."},
-  {name:"Ebon Thatch", desc:"An easygoing innkeeper; seats Hex Rowan’s games and pilots new brews from Raven Cask."},
-  {name:"Sable Nyx", desc:"A perfumer; works with Gloom Ivy on scent and light and buys rare ingredients from Dusk Mariner."},
-  {name:"Thorn Ever", desc:"A steady bookkeeper; respects Slate Crowe’s records and once helped V. M. Pyre with a tab."},
-  {name:"Cob Webber", desc:"A trap and latch maker; fits cellar locks for Ebon Thatch and hardware for Rune Lantern."},
-  {name:"Hallow Reed", desc:"A folk singer; performs with Piper Shade and sometimes refines lyrics with Echo Vane."},
-  {name:"Mist Graves", desc:"A gentle sleepwalker; checks in with Ashen Vale and appreciates Noct Rune’s practical advice."},
-  {name:"Piper Shade", desc:"A flute seller and player; plays with Hallow Reed and prefers Rune Lantern’s reliable lamps."},
-  {name:"Rune Lantern", desc:"A lantern tinker; keeps a simple test for bad wicks and built a nightlight for Mist Graves."},
-  {name:"Bramble Kite", desc:"A quick messenger; coordinates fog runs with Dusk Mariner and uses Slate Crowe’s code marks."},
-  {name:"Frost Morn", desc:"An early-rising ice seller; stores blocks at Ebon Thatch’s and supplies Ember Hollow in summer."},
-  {name:"Ember Hollow", desc:"A methodical candlemaker; works with Cinder Wight for jars and files rumor notes from Echo Vane."},
-  {name:"Wisp Harrow", desc:"A story collector; listens to Hallow Reed’s songs and cross-checks with Echo Vane."},
-  {name:"Crypt Alder", desc:"A quartermaster; syncs inventories with Slate Crowe and confirms deliveries with Raven Cask."},
-  {name:"Omen Lark", desc:"A friendly street reader; teases Hex Rowan about dice and suggests mask ideas to Gourd Wilder."},
-  {name:"Raven Cask", desc:"A small-batch brewer; tests flavors with Ebon Thatch and swaps tasting notes with V. M. Pyre."},
-  {name:"Night Jar", desc:"A curio buyer and reseller; trades with Patch Wylde and orders sturdy packaging from Cob Webber."},
-  {name:"Lumen Wolfe", desc:"A night patrol volunteer; compares notes with Noct Rune and buys long-burn candles from Ember Hollow."},
-  {name:"Patch Wylde", desc:"A card worker; partners with Hex Rowan on game nights and likes a door-side chair at the inn."},
-  {name:"Echo Vane", desc:"A rumor collector who double-sources; revises verses with Hallow Reed and shares leads with Ember Hollow."},
-  {name:"Dusk Mariner", desc:"A ferry operator on the bog path; supplies rope to Mist Graves and passes sealed notes to Noct Rune."},
-  {name:"Ivy Haze", desc:"An herb gatherer; trades with Ashen Vale and brings leaf samples to Gloom Ivy to test lantern heat."},
-  {name:"Slate Crowe", desc:"A record keeper; checks Thorn Ever’s tallies and gives Bramble Kite simple signal codes."},
-  {name:"Gourd Wilder", desc:"A mask artisan; takes orders from Night Jar, builds guards for Cob Webber, and prioritizes comfortable fits."}
+  {name:"V. M. Pyre", desc:"A traveling fire performer who picks up odd jobs setting safe flame effects for events. Pyre regularly tests candle prototypes for Ember Hollow and keeps Raven Cask supplied with clean-burning wicks for tasting nights. Pyre and Thorn Ever once settled a messy tab together, which earned them a quiet reputation for being reliable when money is tight."},
+  {name:"Ashen Vale", desc:"A level-headed apothecary who stocks practical remedies and tracks who needs a check-in. Ashen reminds Mist Graves to keep a night cord handy and swaps herb bundles with Ivy Haze during early market hours. When supplies run short, Ashen coordinates with Crypt Alder to restock without drama."},
+  {name:"Gloom Ivy", desc:"A lantern carver who favors sturdy casings and bright, even light. Ivy buys glass panes from Cinder Wight and experiments with Sable Nyx to see how fragrance travels in different lighting. Ivy and Rune Lantern exchange simple fixes for wicks and hinges to keep shops safe."},
+  {name:"Hex Rowan", desc:"A confident host for cards and dice who keeps rules clear and posted. Hex sets up at Ebon Thatch’s inn and asks Patch Wylde to shuffle and cut so players trust the deck. On busy nights, Hex asks Slate Crowe to jot down payouts to avoid misunderstandings."},
+  {name:"Noct Rune", desc:"A quiet note taker who walks late routes with Lumen Wolfe and writes short, factual summaries each dawn. Noct files incident notes with Slate Crowe and keeps an eye on alley lamps from Rune Lantern’s workshop. When Dusk Mariner drops off sealed envelopes, Noct logs the handoff without opening them."},
+  {name:"Cinder Wight", desc:"A patient glassblower who prefers stable heat, clear glass, and clean lines. Cinder supplies Ivy with panes that fit snugly and sells Ember Hollow jars sturdy enough for transport. During tastings at Ebon Thatch, Cinder sticks to water and leaves early to prep the morning kiln."},
+  {name:"Marrow Quinn", desc:"A careful sketcher who is known for clean diagrams, labels, and practical notes. Marrow checks in with Ashen Vale about anatomy references for small injuries and works with Crypt Alder to keep labeled storage in order. When others argue, Marrow listens and sketches layouts to help people agree on next steps."},
+  {name:"Ebon Thatch", desc:"A steady innkeeper who keeps seating fair and accounts simple. Ebon sets Hex Rowan’s games away from the bottleneck, puts Patch Wylde near the door, and tries Raven Cask’s new brews on quiet nights. When tensions rise, Ebon moves people around before problems start."},
+  {name:"Sable Nyx", desc:"A perfumer who focuses on pleasant, practical blends for crowded rooms. Sable tests how scent travels in Gloom Ivy’s lantern light and buys unusual ingredients from Dusk Mariner when the ferry comes in. Sable keeps small samples for Ember Hollow to trial with long-burn candles."},
+  {name:"Thorn Ever", desc:"A straightforward bookkeeper who balances tabs, posts totals, and closes accounts calmly. Thorn respects Slate Crowe’s record system and once helped V. M. Pyre straighten out an old debt with fair terms. When people disagree about who owes what, Thorn lays out the numbers without judgment."},
+  {name:"Cob Webber", desc:"A practical maker of latches, traps, and hooks for storerooms and shops. Cob fits cellar locks for Ebon Thatch and builds sturdy hardware for Rune Lantern’s workbench. Night Jar often buys packaging hooks from Cob for fragile curios that don’t travel well."},
+  {name:"Hallow Reed", desc:"A folk singer with a clear voice and steady tempo. Hallow performs with Piper Shade on quieter evenings and occasionally asks Echo Vane for factual checks before turning rumors into lyrics. Hallow keeps sets short when the room is tense and gives space to conversations when needed."},
+  {name:"Mist Graves", desc:"A kind, reserved sleepwalker who keeps a night cord on the wrist to stay safe. Mist checks in with Ashen Vale about sleep habits and appreciates Noct Rune’s practical notes about safer routes home. Mist stores extra rope from Dusk Mariner for foggy nights."},
+  {name:"Piper Shade", desc:"A flute seller and reliable accompanist who keeps time without stealing the spotlight. Piper plays with Hallow Reed on request and buys durable lamps from Rune Lantern for late packing. Piper and Ebon Thatch coordinate start times so music never interrupts announcements."},
+  {name:"Rune Lantern", desc:"A lantern repairer and tinkerer who keeps affordable lamps on hand for homes and shops. Rune tests wicks for Ember Hollow and shows Gloom Ivy how to avoid heat warping on tighter casings. When Mist Graves asked for a dim nightlight, Rune built a simple, dependable model."},
+  {name:"Bramble Kite", desc:"A messenger who moves notes around town quickly and keeps routes flexible during weather changes. Bramble uses Slate Crowe’s simple code marks for deliveries and relies on Dusk Mariner when fog shortens routes. When a message risks being misunderstood, Bramble asks for clarity before running it."},
+  {name:"Frost Morn", desc:"An early-rising ice seller who organizes drop-offs before the sun warms cellars. Frost stores blocks at Ebon Thatch, supplies Ember Hollow during hot spells, and takes tea with Lumen Wolfe after the last run. When carts break down, Frost checks with Cob Webber for quick fixes."},
+  {name:"Ember Hollow", desc:"A thorough candlemaker who labels wicks, scents, and burn times. Ember works with Cinder Wight for reliable jars and keeps a small list of ‘feedback tasters’ including Sable Nyx and V. M. Pyre. Echo Vane sometimes passes notes to test how rumors spread with different candle placements."},
+  {name:"Wisp Harrow", desc:"A story collector who writes down what people say and separates hearsay from fact. Wisp listens to Hallow Reed’s sets for clean summaries and checks details with Echo Vane before noting them publicly. When Thorn Ever needs timeline clarity, Wisp provides dates and names without commentary."},
+  {name:"Crypt Alder", desc:"A quartermaster who tracks incoming goods and what went missing. Crypt syncs with Slate Crowe’s records weekly and confirms with Raven Cask when shipments arrive. If someone complains, Crypt compares both lists, then asks Noct Rune whether any late-night issues were logged."},
+  {name:"Omen Lark", desc:"A friendly street reader whose ‘predictions’ are usually tips about crowd flow and timing. Omen teases Hex Rowan about lucky streaks and suggests face-friendly mask shapes to Gourd Wilder. When Ebon Thatch expects a rush, Omen quietly nudges people toward spare seating."},
+  {name:"Raven Cask", desc:"A brewer who experiments in small, labeled batches. Raven tests flavors with Ebon Thatch and keeps a tasting notebook V. M. Pyre references when open flames are part of a show. When supplies run low, Raven double-checks orders with Crypt Alder before changing a recipe."},
+  {name:"Night Jar", desc:"A curio buyer and reseller who takes small risks on odd finds. Night Jar trades marked decks with Patch Wylde and orders secure hooks from Cob Webber for fragile items. When a piece carries a story, Night Jar asks Wisp Harrow to record it for the listing."},
+  {name:"Lumen Wolfe", desc:"A volunteer night patrol who prefers straightforward routes and early starts. Lumen compares patrol notes with Noct Rune and buys long-burn candles from Ember Hollow for steady light. On cold mornings, Lumen meets Frost Morn for tea and route planning."},
+  {name:"Patch Wylde", desc:"A card worker who keeps decks tidy, cuts cleanly, and favors posted rules. Patch partners with Hex Rowan on busier nights and prefers a chair near Ebon Thatch’s door to watch traffic. When disputes rise, Patch pauses the table and defers to Ebon’s seating judgment."},
+  {name:"Echo Vane", desc:"A rumor collector who checks sources before repeating anything. Echo sometimes edits Hallow Reed’s lyrics to avoid naming names and shares neutral placement notes with Ember Hollow for crowd flow. Echo and Wisp Harrow trade dates and times to align their notes."},
+  {name:"Dusk Mariner", desc:"A ferry operator on the bog path who runs ropes that hold in shifting fog. Dusk supplies spare lines to Mist Graves and passes sealed envelopes to Noct Rune for logging. When the weather turns, Dusk coordinates with Bramble Kite to keep deliveries moving."},
+  {name:"Ivy Haze", desc:"An herb gatherer who brings labeled bundles to Ashen Vale and leaf samples to Gloom Ivy for testing under heat. Ivy shares tea with Wisp Harrow on slow afternoons and keeps small sachets for Raven Cask to trial in new brews."},
+  {name:"Slate Crowe", desc:"A record keeper who logs meetings, deliveries, and decisions with simple cross-references. Slate checks Thorn Ever’s tallies monthly and gives Bramble Kite signaling marks for routine messages. When confusion arises, Slate pulls the right page and points to the line."},
+  {name:"Gourd Wilder", desc:"A mask artisan focused on comfortable fit and clear sight lines. Gourd takes orders from Night Jar, builds shop guards for Cob Webber, and asks Omen Lark about crowd patterns before carving showy pieces. When performers complain, Gourd adjusts straps and pads without fuss."}
 ];
 
 const DEFAULT_TASKS = [
@@ -495,7 +508,9 @@ const DEFAULT_CLUES = [
   {id:"D2", title:"Red Herring: The Garlic Fable", body:"Someone swore they saw a cloaked patron recoil from garlic… but the cloves were candied. Theatrical groaning followed."}
 ];
 
-/* Firebase (paste your config) */
+/* =========================
+   Firebase (paste config)
+========================= */
 const firebaseConfig = {
   apiKey: "AIzaSyDNqVMgr5CHIe-ajgikCaJp0kzB2CpbOWs",
   authDomain: "murdermystery-cd241.firebaseapp.com",
@@ -509,7 +524,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* Helpers & modal */
+/* =========================
+   Helpers & modal
+========================= */
 const byId = id => document.getElementById(id);
 const setPill = (id,t)=> byId(id).textContent = t;
 const hashSHA256 = async (text)=>{
@@ -518,10 +535,12 @@ const hashSHA256 = async (text)=>{
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 };
 function setCookie(name,value,days){
+  if (DEBUG_NO_COOKIES) return;
   const d = new Date(); d.setTime(d.getTime() + (days*24*60*60*1000));
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${d.toUTCString()}; path=/; SameSite=Lax`;
 }
 function getCookie(name){
+  if (DEBUG_NO_COOKIES) return '';
   const m = document.cookie.match(new RegExp('(^| )'+name+'=([^;]+)')); return m ? decodeURIComponent(m[2]) : '';
 }
 const modal = byId('resultModal');
@@ -532,11 +551,13 @@ function popup(title, html){
   modal.showModal();
 }
 
-/* Always show Admin tab; features still require admin password */
+/* Always show Admin tab button; panel remains locked until password */
 function showAdminTab(){ byId('tab-admin').style.display = ''; }
 showAdminTab();
 
-/* Host Setup */
+/* =========================
+   Host Setup
+========================= */
 const rolePoolEl = byId('rolePool');
 byId('fillDefaultsBtn').addEventListener('click', ()=>{
   rolePoolEl.value = DEFAULT_CHAR_OBJS.map(o=>`${o.name} — ${o.desc}`).join("\n");
@@ -579,7 +600,9 @@ byId('createRoomBtn').addEventListener('click', async ()=>{
   }
 });
 
-/* Join & Claim */
+/* =========================
+   Join & Claim
+========================= */
 function saveLocal(room,name,charId,charName){
   localStorage.setItem('mb_room', room);
   localStorage.setItem('mb_name', name);
@@ -691,7 +714,9 @@ byId('copyRoleBtn').addEventListener('click', async ()=>{
   alert('Copied:\n'+txt);
 });
 
-/* Active Mode visibility guards */
+/* =========================
+   Active Mode
+========================= */
 function loadLocalIdentity(){
   return {
     room: localStorage.getItem('mb_room') || '',
@@ -711,16 +736,18 @@ async function refreshActive(){
 
   // If player has no character, keep Active hidden and show normal tabs
   const hasChar = !!charId;
+  const isAdminUnlocked = localStorage.getItem('mb_is_admin') === '1';
   if (!hasChar){
     byId('panel-active').hidden = true;
     byId('topTabs').classList.remove('hidden');
     return;
   }
 
-  // Player has a character: show Active panel
+  // Player has a character: show Active panel and hide tabs if not admin
+  if (!isAdminUnlocked) byId('topTabs').classList.add('hidden');
+
   setPill('activeRoomPill', `Room: ${room||'—'}`);
   setPill('activeNamePill', `Player: ${name||'—'}`);
-  setPill('activeCharPill', `Character: ${charName||'—'}`);
 
   const uid = getUid(room, name);
   const [userSnap, stateSnap, charsSnap, usersSnap] = await Promise.all([
@@ -747,7 +774,7 @@ async function refreshActive(){
   }else{
     const me = userSnap.val();
 
-    // Character summary (use full combined name string; desc already included in characters.name)
+    // Character summary (use combined string from characters.name)
     const charRec = me.charId && chars[me.charId] ? chars[me.charId] : null;
     const charLine = charRec ? charRec.name : (charName||'—');
     byId('charSummaryText').innerHTML = `<div><b>${charLine}</b></div>`;
@@ -763,7 +790,7 @@ async function refreshActive(){
       byId('waitingState').hidden = true;
       byId('liveGameBlock').hidden = false;
 
-      // Objectives: one new per round (cumulative)
+      // Objectives: reveal one per round (cumulative)
       const toShow = Math.min(me.tasks?.length||0, state.round||1);
       const tasks = (me.tasks||[]).slice(0, toShow);
       const list = tasks.map((t,i)=>`
@@ -784,12 +811,6 @@ async function refreshActive(){
     }
 
     byId('panel-active').hidden = false;
-  }
-
-  // Hide all tabs for regular players while in Active (unless admin unlocked)
-  const isAdminUnlocked = localStorage.getItem('mb_is_admin') === '1';
-  if (!isAdminUnlocked){
-    byId('topTabs').classList.add('hidden');
   }
 }
 byId('refreshActiveBtn').addEventListener('click', refreshActive);
@@ -943,7 +964,9 @@ async function renderClues(){
 byId('refreshCluesBtn').addEventListener('click', renderClues);
 document.getElementById('tab-clues').addEventListener('click', renderClues);
 
-/* Admin */
+/* =========================
+   Admin
+========================= */
 let ADMIN_OK = false;
 async function adminAuth(){
   const room = (byId('adminRoom').value||'').trim().toUpperCase();
@@ -958,9 +981,11 @@ async function adminAuth(){
     localStorage.setItem('mb_room_admin', room);
     localStorage.setItem('mb_is_admin', '1'); // mark this device as admin-unlocked
     out.innerHTML = `<span class="badge success">Admin unlocked</span>`;
+    byId('adminBody').hidden = false; // show admin controls
     await refreshAdminAll();
   }catch(e){
     ADMIN_OK = false;
+    byId('adminBody').hidden = true;
     out.innerHTML = `<span class="badge danger">Auth failed</span> ${e.message}`;
   }
 }
@@ -1388,13 +1413,6 @@ byId('useDefaultCluesBtn').addEventListener('click', async ()=>{
   const clues={}; DEFAULT_CLUES.forEach(c=> clues[c.id]={title:c.title, body:c.body, revealed:false});
   await db.ref(`rooms/${room}/clues`).set(clues);
   byId('csvStatus').textContent='Default clues loaded.';
-});
-
-/* Candidate list (Admin) refresh hook */
-document.getElementById('tab-admin').addEventListener('click', async ()=>{
-  if (!ADMIN_OK) return;
-  await refreshCandidateSelectors();
-  await renderAdminTally();
 });
 
 /* Collapse UI to Active for players with a character */

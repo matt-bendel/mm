@@ -25,6 +25,7 @@
   .subtitle{color:var(--muted); margin-top:6px}
   .wrap{max-width:1100px; margin:0 auto; padding:20px}
   .tabs{display:flex; gap:8px; justify-content:center; margin:16px 0 24px; flex-wrap:wrap}
+  .tabs.hidden{display:none !important}
   .tab{border:1px solid #26262b; background:#121215; color:#d7d7de; padding:10px 14px; border-radius:12px; cursor:pointer}
   .tab[aria-selected="true"]{background:#201116; border-color:#531018; color:#ffd9dd; box-shadow:0 0 24px rgba(177,18,38,.35)}
   .panel{background:linear-gradient(180deg,#121215,#0f0f12); border:1px solid #242428; border-radius:16px; padding:18px}
@@ -79,7 +80,7 @@
   .parchment h4{margin:.3rem 0 .2rem; font-size:18px; color:#f2e7d9}
   .parchment .tag{font-size:12px; color:#bda48f}
 
-  /* Checklist: left-justified check & text */
+  /* Checklist */
   .todo{display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid #242428; border-radius:12px; margin-top:8px; background:#101014; justify-content:flex-start}
   .todo input[type="checkbox"]{transform:scale(1.2); margin-top:3px}
   .todo.done{opacity:.7}
@@ -104,10 +105,10 @@
 </header>
 
 <div class="wrap">
-  <nav class="tabs" role="tablist" aria-label="Moonlit App">
+  <nav class="tabs" role="tablist" aria-label="Moonlit App" id="topTabs">
     <button class="tab" id="tab-host" role="tab" aria-selected="true">Host Setup</button>
     <button class="tab" id="tab-join" role="tab" aria-selected="false">Join</button>
-    <!-- NOTE: No "Active Mode" tab for players -->
+    <!-- No "Active Mode" tab for players -->
     <button class="tab" id="tab-clues" role="tab" aria-selected="false">Clues</button>
     <button class="tab" id="tab-admin" role="tab" aria-selected="false">Admin</button>
   </nav>
@@ -130,7 +131,7 @@
 
         <div class="divider"></div>
 
-        <label>Character Pool (one per line)</label>
+        <label>Character Pool (name — biography, one per line)</label>
         <textarea id="rolePool"></textarea>
 
         <div class="divider"></div>
@@ -148,7 +149,7 @@
           <li>Host creates a room with passwords.</li>
           <li>Players join and receive a random unclaimed character.</li>
           <li>Admin starts the game when ready. Before that, players only see their character (and role, if any).</li>
-          <li>Rounds, voting, deaths, clues, and win checks are controlled by the Admin.</li>
+          <li>Admin controls rounds, clues, voting, deaths, and checks win conditions.</li>
         </ul>
       </div>
     </div>
@@ -186,7 +187,7 @@
     </div>
   </section>
 
-  <!-- ACTIVE (no tab; panel only) -->
+  <!-- ACTIVE (no tab; hidden by default) -->
   <section id="panel-active" class="panel" hidden>
     <div class="grid">
       <div class="row" style="justify-content:space-between">
@@ -427,49 +428,52 @@ TABS.forEach(({btn,panel})=>{
       document.getElementById(x.btn).setAttribute('aria-selected', x.btn===btn ? 'true':'false');
       document.getElementById(x.panel).hidden = x.panel!==panel;
     });
+    // Keep Active panel hidden unless explicitly entering Active mode
+    document.getElementById('panel-active').hidden = true;
+    document.getElementById('topTabs').classList.remove('hidden');
   });
 });
 
-/* Defaults (added 5th objective for initial+4 rounds) */
-const CHARACTERS = [
-"V. M. Pyre — Fire-eater & matchbook collector",
-"Ashen Vale — Traveling apothecary",
-"Gloom Ivy — Lantern carver",
-"Hex Rowan — Fortune-maker with dice",
-"Noct Rune — Night watch scribe",
-"Cinder Wight — Glassblower",
-"Marrow Quinn — Anatomist & sketcher",
-"Ebon Thatch — Innkeeper",
-"Sable Nyx — Perfumer",
-"Thorn Ever — Debt-keeper",
-"Cob Webber — Trap-maker",
-"Hallow Reed — Folk singer",
-"Mist Graves — Sleep-walker",
-"Piper Shade — Flute-seller",
-"Rune Lantern — Tinker of lights",
-"Bramble Kite — Messenger",
-"Frost Morn — Ice seller",
-"Ember Hollow — Candlemaker",
-"Wisp Harrow — Story collector",
-"Crypt Alder — Quartermaster",
-"Omen Lark — Oracle busker",
-"Raven Cask — Brewer of odd ales",
-"Night Jar — Curio dealer",
-"Lumen Wolfe — Town watch volunteer",
-"Patch Wylde — Card-sharp",
-"Echo Vane — Rumor broker",
-"Dusk Mariner — Ferrier of the bog",
-"Ivy Haze — Herb gatherer",
-"Slate Crowe — Record keeper",
-"Gourd Wilder — Mask artisan"
+/* Character defaults with cleaner bios */
+const DEFAULT_CHAR_OBJS = [
+  {name:"V. M. Pyre", desc:"A traveling fire performer who collects matchbooks; friends with Raven Cask and often helps Ember Hollow test new candles."},
+  {name:"Ashen Vale", desc:"A practical apothecary; checks in on Mist Graves and trades herbs with Ivy Haze."},
+  {name:"Gloom Ivy", desc:"A lantern carver; buys glass from Cinder Wight and swaps ideas with Sable Nyx."},
+  {name:"Hex Rowan", desc:"A confident games host at Ebon Thatch’s inn; partners with Patch Wylde for fair play."},
+  {name:"Noct Rune", desc:"A quiet night-note taker; compares routes with Lumen Wolfe and files summaries with Slate Crowe."},
+  {name:"Cinder Wight", desc:"A glassblower; supplies Gloom Ivy with panes and Ember Hollow with jars."},
+  {name:"Marrow Quinn", desc:"An anatomy sketcher; consults Ashen Vale and coordinates storage with Crypt Alder."},
+  {name:"Ebon Thatch", desc:"An easygoing innkeeper; seats Hex Rowan’s games and pilots new brews from Raven Cask."},
+  {name:"Sable Nyx", desc:"A perfumer; works with Gloom Ivy on scent and light and buys rare ingredients from Dusk Mariner."},
+  {name:"Thorn Ever", desc:"A steady bookkeeper; respects Slate Crowe’s records and once helped V. M. Pyre with a tab."},
+  {name:"Cob Webber", desc:"A trap and latch maker; fits cellar locks for Ebon Thatch and hardware for Rune Lantern."},
+  {name:"Hallow Reed", desc:"A folk singer; performs with Piper Shade and sometimes refines lyrics with Echo Vane."},
+  {name:"Mist Graves", desc:"A gentle sleepwalker; checks in with Ashen Vale and appreciates Noct Rune’s practical advice."},
+  {name:"Piper Shade", desc:"A flute seller and player; plays with Hallow Reed and prefers Rune Lantern’s reliable lamps."},
+  {name:"Rune Lantern", desc:"A lantern tinker; keeps a simple test for bad wicks and built a nightlight for Mist Graves."},
+  {name:"Bramble Kite", desc:"A quick messenger; coordinates fog runs with Dusk Mariner and uses Slate Crowe’s code marks."},
+  {name:"Frost Morn", desc:"An early-rising ice seller; stores blocks at Ebon Thatch’s and supplies Ember Hollow in summer."},
+  {name:"Ember Hollow", desc:"A methodical candlemaker; works with Cinder Wight for jars and files rumor notes from Echo Vane."},
+  {name:"Wisp Harrow", desc:"A story collector; listens to Hallow Reed’s songs and cross-checks with Echo Vane."},
+  {name:"Crypt Alder", desc:"A quartermaster; syncs inventories with Slate Crowe and confirms deliveries with Raven Cask."},
+  {name:"Omen Lark", desc:"A friendly street reader; teases Hex Rowan about dice and suggests mask ideas to Gourd Wilder."},
+  {name:"Raven Cask", desc:"A small-batch brewer; tests flavors with Ebon Thatch and swaps tasting notes with V. M. Pyre."},
+  {name:"Night Jar", desc:"A curio buyer and reseller; trades with Patch Wylde and orders sturdy packaging from Cob Webber."},
+  {name:"Lumen Wolfe", desc:"A night patrol volunteer; compares notes with Noct Rune and buys long-burn candles from Ember Hollow."},
+  {name:"Patch Wylde", desc:"A card worker; partners with Hex Rowan on game nights and likes a door-side chair at the inn."},
+  {name:"Echo Vane", desc:"A rumor collector who double-sources; revises verses with Hallow Reed and shares leads with Ember Hollow."},
+  {name:"Dusk Mariner", desc:"A ferry operator on the bog path; supplies rope to Mist Graves and passes sealed notes to Noct Rune."},
+  {name:"Ivy Haze", desc:"An herb gatherer; trades with Ashen Vale and brings leaf samples to Gloom Ivy to test lantern heat."},
+  {name:"Slate Crowe", desc:"A record keeper; checks Thorn Ever’s tallies and gives Bramble Kite simple signal codes."},
+  {name:"Gourd Wilder", desc:"A mask artisan; takes orders from Night Jar, builds guards for Cob Webber, and prioritizes comfortable fits."}
 ];
 
 const DEFAULT_TASKS = [
-  "Learn two names and one hobby.",                      // Round 1 (Initial mingle)
-  "Trade a small trinket or token with someone.",        // Round 2
-  "Share one rumor or clue you’ve heard.",               // Round 3
-  "Publicly vouch for or accuse exactly one person.",    // Round 4
-  "Find someone who matches a clue and ask them about it." // Round 5
+  "Learn two names and one hobby.",
+  "Trade a small trinket or token with someone.",
+  "Share one rumor or clue you’ve heard.",
+  "Publicly vouch for or accuse exactly one person.",
+  "Find someone who matches a clue and ask them about it."
 ];
 
 const DEFAULT_CLUES = [
@@ -491,7 +495,7 @@ const DEFAULT_CLUES = [
   {id:"D2", title:"Red Herring: The Garlic Fable", body:"Someone swore they saw a cloaked patron recoil from garlic… but the cloves were candied. Theatrical groaning followed."}
 ];
 
-/* Firebase */
+/* Firebase (paste your config) */
 const firebaseConfig = {
   apiKey: "AIzaSyDNqVMgr5CHIe-ajgikCaJp0kzB2CpbOWs",
   authDomain: "murdermystery-cd241.firebaseapp.com",
@@ -528,13 +532,15 @@ function popup(title, html){
   modal.showModal();
 }
 
-/* Always show Admin tab (auth still required) */
+/* Always show Admin tab; features still require admin password */
 function showAdminTab(){ byId('tab-admin').style.display = ''; }
 showAdminTab();
 
 /* Host Setup */
 const rolePoolEl = byId('rolePool');
-byId('fillDefaultsBtn').addEventListener('click', ()=>{ rolePoolEl.value = CHARACTERS.join("\n"); });
+byId('fillDefaultsBtn').addEventListener('click', ()=>{
+  rolePoolEl.value = DEFAULT_CHAR_OBJS.map(o=>`${o.name} — ${o.desc}`).join("\n");
+});
 byId('fillDefaultsBtn').click();
 
 byId('createRoomBtn').addEventListener('click', async ()=>{
@@ -554,8 +560,10 @@ byId('createRoomBtn').addEventListener('click', async ()=>{
   const chars = {};
   unique.forEach((line, i)=>{
     const id = 'c_'+i.toString().padStart(3,'0');
-    // keep the whole line in name; optional desc field for CSV imports
-    chars[id] = {name: line, desc: null, claimedBy:null, claimedAt:null, dead:false};
+    const [name, ...rest] = line.split('—');
+    const nm = (name||'').trim();
+    const desc = (rest.join('—')||'').trim() || null;
+    chars[id] = {name: nm + (desc? ` — ${desc}`:''), desc, claimedBy:null, claimedAt:null, dead:false};
   });
   const clues = {}; DEFAULT_CLUES.forEach(c=>{ clues[c.id] = {title:c.title, body:c.body, revealed:false}; });
   const state = { gameStarted:false, round: 1, voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null } };
@@ -683,7 +691,7 @@ byId('copyRoleBtn').addEventListener('click', async ()=>{
   alert('Copied:\n'+txt);
 });
 
-/* Active Mode */
+/* Active Mode visibility guards */
 function loadLocalIdentity(){
   return {
     room: localStorage.getItem('mb_room') || '',
@@ -700,19 +708,19 @@ async function getRoomState(room){
 
 async function refreshActive(){
   const {room,name,charId,charName} = loadLocalIdentity();
+
+  // If player has no character, keep Active hidden and show normal tabs
+  const hasChar = !!charId;
+  if (!hasChar){
+    byId('panel-active').hidden = true;
+    byId('topTabs').classList.remove('hidden');
+    return;
+  }
+
+  // Player has a character: show Active panel
   setPill('activeRoomPill', `Room: ${room||'—'}`);
   setPill('activeNamePill', `Player: ${name||'—'}`);
   setPill('activeCharPill', `Character: ${charName||'—'}`);
-
-  if (!room || !name){
-    byId('panel-active').hidden = false; // still show container so players know to Join
-    byId('charSummaryText').innerHTML = '—';
-    byId('roleDetailsBox').innerHTML = '';
-    byId('waitingState').hidden = false;
-    byId('liveGameBlock').hidden = true;
-    setPill('roundPill','Round: —'); setPill('voteStatusPill','Vote: —'); setPill('voteCountdownPill','⏳ —');
-    return;
-  }
 
   const uid = getUid(room, name);
   const [userSnap, stateSnap, charsSnap, usersSnap] = await Promise.all([
@@ -735,49 +743,54 @@ async function refreshActive(){
     byId('roleDetailsBox').innerHTML = '';
     byId('waitingState').hidden = false;
     byId('liveGameBlock').hidden = true;
-    return;
-  }
-  const me = userSnap.val();
-
-  // Character summary (show full text name and optional desc)
-  const charRec = me.charId && chars[me.charId] ? chars[me.charId] : null;
-  const charLine = charRec ? charRec.name : (charName||'—');
-  const charDesc = (charRec && charRec.desc) ? `<div class="muted">${charRec.desc}</div>` : '';
-  byId('charSummaryText').innerHTML = `<div><b>${charLine}</b>${charDesc}</div>`;
-
-  // Role details (inline, no top pill). Show villain visibility appropriately.
-  byId('roleDetailsBox').innerHTML = renderRoleDetails(me, users, chars);
-
-  // Wait state vs live game
-  if (!state.gameStarted){
-    byId('waitingState').hidden = false;
-    byId('liveGameBlock').hidden = true;
     byId('panel-active').hidden = false;
-    return;
   }else{
-    byId('waitingState').hidden = true;
-    byId('liveGameBlock').hidden = false;
+    const me = userSnap.val();
+
+    // Character summary (use full combined name string; desc already included in characters.name)
+    const charRec = me.charId && chars[me.charId] ? chars[me.charId] : null;
+    const charLine = charRec ? charRec.name : (charName||'—');
+    byId('charSummaryText').innerHTML = `<div><b>${charLine}</b></div>`;
+
+    // Role details (inline; villain visibility)
+    byId('roleDetailsBox').innerHTML = renderRoleDetails(me, users, chars);
+
+    // Waiting vs live
+    if (!state.gameStarted){
+      byId('waitingState').hidden = false;
+      byId('liveGameBlock').hidden = true;
+    }else{
+      byId('waitingState').hidden = true;
+      byId('liveGameBlock').hidden = false;
+
+      // Objectives: one new per round (cumulative)
+      const toShow = Math.min(me.tasks?.length||0, state.round||1);
+      const tasks = (me.tasks||[]).slice(0, toShow);
+      const list = tasks.map((t,i)=>`
+        <label class="todo ${t.done?'done':''}">
+          <input type="checkbox" data-ix="${i}" ${t.done?'checked':''}/>
+          <div>${t.text}</div>
+        </label>`).join('');
+      byId('todoList').innerHTML = list || '<div class="muted">No tasks found.</div>';
+      [...byId('todoList').querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
+        cb.addEventListener('change', async (e)=>{
+          const ix = Number(e.target.getAttribute('data-ix'));
+          await db.ref(`rooms/${room}/users/${uid}/tasks/${ix}/done`).set(e.target.checked);
+          refreshActive();
+        });
+      });
+
+      await renderPlayerVoting(room, uid, state);
+    }
+
     byId('panel-active').hidden = false;
   }
 
-  // Objectives — reveal 1 per round cumulatively (round 1 shows first, round 2 shows first two, …)
-  const toShow = Math.min(me.tasks?.length||0, state.round||1);
-  const tasks = (me.tasks||[]).slice(0, toShow);
-  const list = tasks.map((t,i)=>`
-    <label class="todo ${t.done?'done':''}">
-      <input type="checkbox" data-ix="${i}" ${t.done?'checked':''}/>
-      <div>${t.text}</div>
-    </label>`).join('');
-  byId('todoList').innerHTML = list || '<div class="muted">No tasks found.</div>';
-  [...byId('todoList').querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
-    cb.addEventListener('change', async (e)=>{
-      const ix = Number(e.target.getAttribute('data-ix'));
-      await db.ref(`rooms/${room}/users/${uid}/tasks/${ix}/done`).set(e.target.checked);
-      refreshActive();
-    });
-  });
-
-  await renderPlayerVoting(room, uid, state);
+  // Hide all tabs for regular players while in Active (unless admin unlocked)
+  const isAdminUnlocked = localStorage.getItem('mb_is_admin') === '1';
+  if (!isAdminUnlocked){
+    byId('topTabs').classList.add('hidden');
+  }
 }
 byId('refreshActiveBtn').addEventListener('click', refreshActive);
 
@@ -810,7 +823,7 @@ function aliveStatus(u, chars){ const dead = u?.dead || (u?.charId && chars[u.ch
 function roleDetailsText(role){
   switch(role){
     case 'Elder Vampire': return 'Primary killer. One target per round, and +1 additional kill each round (bandana snatch). Knows the Lesser Vampire and the Thrall.';
-    case 'Lesser Vampire': return 'Succeeds the Elder upon Elder’s death. Knows the Elder and the Thrall. Has no thrall of their own.';
+    case 'Lesser Vampire': return 'Succeeds the Elder upon Elder’s death. Knows the Elder and the Thrall. Has no thrall.';
     case 'Thrall': return 'Once-per-game compelled kill on Elder’s command; obeys Elder’s orders. Freed if the Elder dies.';
     case 'Night Warden': return 'Openly armed hunter (nerf blaster). May eliminate one target per round. May hit innocent or vampire.';
     case 'Mirrorcloak': return 'Hidden avenger. If attacked by the vampire or thrall, the attacker dies instantly.';
@@ -823,9 +836,7 @@ function renderRoleDetails(me, users, chars){
   const base = `<div class="card" style="margin-top:8px">
       <div><b>Role:</b> ${me.specialRole}</div>
       <div class="muted" style="margin-top:6px">${roleDetailsText(me.specialRole)||''}</div>`;
-  // villain visibility
   if (me.specialRole === 'Elder Vampire' || me.specialRole === 'Lesser Vampire'){
-    // find lesser, elder, thrall
     let elder=null, lesser=null, thrall=null;
     for (const [uid,u] of Object.entries(users||{})){
       if (u.specialRole === 'Elder Vampire') elder = {uid,u};
@@ -945,6 +956,7 @@ async function adminAuth(){
     if (!ok) throw new Error('Incorrect admin password');
     ADMIN_OK = true;
     localStorage.setItem('mb_room_admin', room);
+    localStorage.setItem('mb_is_admin', '1'); // mark this device as admin-unlocked
     out.innerHTML = `<span class="badge success">Admin unlocked</span>`;
     await refreshAdminAll();
   }catch(e){
@@ -1331,7 +1343,7 @@ byId('importCharsBtn').addEventListener('click', async ()=>{
     const name=(r[0]||'').trim(); if (!name) continue;
     const desc=(r[1]||'').trim()||null;
     const id='c_'+(i++).toString().padStart(3,'0');
-    chars[id]={name, desc, claimedBy:null, claimedAt:null, dead:false};
+    chars[id]={name: desc ? `${name} — ${desc}` : name, desc, claimedBy:null, claimedAt:null, dead:false};
   }
   if (!Object.keys(chars).length){ byId('csvStatus').textContent='No valid rows found.'; return; }
   await db.ref(`rooms/${room}/characters`).set(chars);
@@ -1342,9 +1354,10 @@ byId('importCharsBtn').addEventListener('click', async ()=>{
 byId('useDefaultCharsBtn').addEventListener('click', async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
-  const chars={}; CHARACTERS.forEach((line,i)=>{
+  const chars={}; DEFAULT_CHAR_OBJS.forEach((o,i)=>{
     const id='c_'+i.toString().padStart(3,'0');
-    chars[id]={name:line, desc:null, claimedBy:null, claimedAt:null, dead:false};
+    const combined = o.desc ? `${o.name} — ${o.desc}` : o.name;
+    chars[id]={name:combined, desc:o.desc||null, claimedBy:null, claimedAt:null, dead:false};
   });
   await db.ref(`rooms/${room}/characters`).set(chars);
   byId('csvStatus').textContent='Default characters loaded.';
@@ -1377,18 +1390,18 @@ byId('useDefaultCluesBtn').addEventListener('click', async ()=>{
   byId('csvStatus').textContent='Default clues loaded.';
 });
 
-/* Candidates list (Admin) refresh hook */
+/* Candidate list (Admin) refresh hook */
 document.getElementById('tab-admin').addEventListener('click', async ()=>{
   if (!ADMIN_OK) return;
   await refreshCandidateSelectors();
   await renderAdminTally();
 });
 
-/* Collapse UI for assigned players (no Active tab anywhere) */
+/* Collapse UI to Active for players with a character */
 function collapseToActiveOnly(){
-  ['tab-host','tab-join','tab-clues'].forEach(id=>{
-    const el = document.getElementById(id); if (el) el.style.display = 'none';
-  });
+  const isAdminUnlocked = localStorage.getItem('mb_is_admin') === '1';
+  // Hide tabs for regular players; show tabs for admin device
+  if (!isAdminUnlocked) byId('topTabs').classList.add('hidden');
   // Show only the Active panel
   document.getElementById('panel-active').hidden = false;
   ['panel-host','panel-join','panel-clues','panel-admin'].forEach(id=>{
@@ -1396,14 +1409,13 @@ function collapseToActiveOnly(){
   });
 }
 
-/* Prefill and init */
+/* Prefill from cookies; show active if already assigned */
 (function(){
   const r = getCookie('mb_room'); const n = getCookie('mb_name');
   if (r) byId('joinRoom').value = r;
   if (n) byId('realName').value = n;
 })();
 document.addEventListener('DOMContentLoaded', ()=>{
-  // If a character is already selected, go straight to Active panel.
   if (localStorage.getItem('mb_charId')) collapseToActiveOnly();
   refreshActive();
 });

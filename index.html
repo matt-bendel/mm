@@ -117,10 +117,10 @@ const store = storage || {get:()=>"", set:()=>{}, remove:()=>{}, clear:()=>{}};
 const {popup} = bindModal('closeModalBtn');
 
 // Helper: base character name (strip biography regardless of dash variant)
-function baseCharName(s){
-  const val = (s||'').trim();
-  const seps = [' — ', ' - ', ' �?" '];
-  for (const sep of seps){
+function baseCharName(str){
+  const val = (str||'').trim();
+  const separators = [' \u2014 ', ' - ', ' \u2013 '];
+  for (const sep of separators){
     const ix = val.indexOf(sep);
     if (ix !== -1) return val.slice(0, ix).trim();
   }
@@ -160,7 +160,8 @@ const activeSession = {
   subscribedRoom: '',
   subscribedUid: '',
   listeners: [],
-  data: { state: null, users: null, characters: null, clues: null }
+  data: { state: null, users: null, characters: null, clues: null },
+  lastPopupTs: 0
 };
 
 function resetActiveData(){
@@ -168,6 +169,7 @@ function resetActiveData(){
   activeSession.data.users = null;
   activeSession.data.characters = null;
   activeSession.data.clues = null;
+  activeSession.lastPopupTs = 0;
 }
 
 function detachActiveListeners(){
@@ -275,6 +277,7 @@ async function refreshActive(){
   activeSession.charId = charId;
   activeSession.charName = charName;
   activeSession.uid = joined && room && name ? uid(room, name) : '';
+  activeSession.lastPopupTs = joined && room ? Number(store.get(`mb_last_popup_${room}`)||0) : 0;
 
   if (!joined){
     detachActiveListeners();
@@ -303,6 +306,13 @@ async function renderActiveWithData(){
   const charRec = (me && me.charId && chars[me.charId]) || (charId && chars[charId]) || null;
   const charLine = baseCharName(charRec ? charRec.name : (charName||'—'));
   const bio = (charRec && (charRec.bio || charRec.desc)) || '';
+
+  const popupInfo = state.lastPopup;
+  if (popupInfo?.ts && popupInfo.ts !== activeSession.lastPopupTs){
+    popup(popupInfo.title || 'Notice', popupInfo.html || popupInfo.body || '');
+    activeSession.lastPopupTs = popupInfo.ts;
+    if (room) store.set(`mb_last_popup_${room}`, String(popupInfo.ts));
+  }
 
   $('activeRoomPill').textContent = `Room: ${room||'—'}`;
   $('activeNamePill').textContent = `Player: ${name||'—'}`;

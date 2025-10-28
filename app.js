@@ -8,17 +8,90 @@
 
 // -------- Firebase Config --------
 const MB = (function(){
-    const DEBUG_NO_COOKIES = true; // flip true for multi-tab testing (no cookies)
-  
+    const hasWindow = typeof window !== 'undefined';
+    const searchParams = hasWindow ? new URLSearchParams((window.location && window.location.search) || '') : null;
+    let searchDebug = false;
+    if (searchParams && searchParams.has('debug')){
+      const flag = searchParams.get('debug');
+      searchDebug = !flag || !/^(0|false|off)$/i.test(flag);
+    }
+    const defaultDebug = hasWindow && (
+      (window.location && window.location.protocol === 'file:') ||
+      /^(localhost|127\.|0\.0\.0\.0)/.test((window.location && window.location.hostname) || '')
+    );
+    const DEBUG_MODE = true; //Boolean(
+    //   hasWindow && window.MB_FORCE_DEBUG !== undefined
+        // ? window.MB_FORCE_DEBUG
+        // : (defaultDebug || searchDebug)
+    // );
+    const DEBUG_NO_COOKIES = DEBUG_MODE;
+    const volatileStore = {};
+    const storage = {
+      set(key, value){
+        if (value === undefined){ this.remove(key); return; }
+        if (DEBUG_MODE){
+          volatileStore[key] = value;
+          return;
+        }
+        try{
+          if (hasWindow && window.localStorage) window.localStorage.setItem(key, value);
+        }catch(e){}
+      },
+      get(key){
+        if (DEBUG_MODE){
+          return Object.prototype.hasOwnProperty.call(volatileStore, key) ? volatileStore[key] : '';
+        }
+        try{
+          return (hasWindow && window.localStorage) ? (window.localStorage.getItem(key) || '') : '';
+        }catch(e){
+          return '';
+        }
+      },
+      remove(key){
+        if (DEBUG_MODE){
+          delete volatileStore[key];
+          return;
+        }
+        try{
+          if (hasWindow && window.localStorage) window.localStorage.removeItem(key);
+        }catch(e){}
+      },
+      clear(prefix){
+        if (DEBUG_MODE){
+          Object.keys(volatileStore).forEach(k=>{
+            if (!prefix || k.startsWith(prefix)) delete volatileStore[k];
+          });
+          return;
+        }
+        try{
+          if (!(hasWindow && window.localStorage)) return;
+          if (!prefix){
+            window.localStorage.clear();
+            return;
+          }
+          const toRemove = [];
+          for (let i=0;i<window.localStorage.length;i++){
+            const k = window.localStorage.key(i);
+            if (k && k.startsWith(prefix)) toRemove.push(k);
+          }
+          toRemove.forEach(k=> window.localStorage.removeItem(k));
+        }catch(e){}
+      }
+    };
+
+    if (DEBUG_MODE){
+      storage.clear('mb_');
+    }
+
     const firebaseConfig = {
-        apiKey: "AIzaSyDNqVMgr5CHIe-ajgikCaJp0kzB2CpbOWs",
-        authDomain: "murdermystery-cd241.firebaseapp.com",
-        databaseURL: "https://murdermystery-cd241-default-rtdb.firebaseio.com",
-        projectId: "murdermystery-cd241",
-        storageBucket: "murdermystery-cd241.firebasestorage.app",
-        messagingSenderId: "724748560349",
-        appId: "1:724748560349:web:4ba1d4f5ed874419167834",
-        measurementId: "G-7RS065D3HZ"
+        apiKey: \"AIzaSyDNqVMgr5CHIe-ajgikCaJp0kzB2CpbOWs\",
+        authDomain: \"murdermystery-cd241.firebaseapp.com\",
+        databaseURL: \"https://murdermystery-cd241-default-rtdb.firebaseio.com\",
+        projectId: \"murdermystery-cd241\",
+        storageBucket: \"murdermystery-cd241.firebasestorage.app\",
+        messagingSenderId: \"724748560349\",
+        appId: \"1:724748560349:web:4ba1d4f5ed874419167834\",
+        measurementId: \"G-7RS065D3HZ\"
       };
   
     // expose config (optional)
@@ -178,8 +251,8 @@ const MB = (function(){
     function roleDetailsText(role){
       switch(role){
         case 'Elder Vampire': return 'Primary killer. One target per round, +1 extra kill each round. Knows the Lesser Vampire and the Thrall.';
-        case 'Lesser Vampire': return 'Succeeds Elder upon Elder’s death. Knows Elder and Thrall. No thrall of their own.';
-        case 'Thrall': return 'Once-per-game compelled kill on Elder’s command; freed if Elder dies.';
+        case 'Lesser Vampire': return 'Succeeds Elder upon ElderG��s death. Knows Elder and Thrall. No thrall of their own.';
+        case 'Thrall': return 'Once-per-game compelled kill on ElderG��s command; freed if Elder dies.';
         case 'Night Warden': return 'Open hunter (nerf blaster). May eliminate one target per round (anyone).';
         case 'Mirrorcloak': return 'Hidden avenger. If attacked by vampire/thrall, attacker dies instantly.';
         case 'Gravespeaker': return 'Medium. After each death, may consult the dead; each spirit publicly clears one innocent.';
@@ -203,7 +276,7 @@ const MB = (function(){
         if (elder) lines.push(`Elder Vampire: <b>${elder.u.name}</b>${aliveStatus(elder.u, chars)}`);
         if (lesser) lines.push(`Lesser Vampire: <b>${lesser.u.name}</b>${aliveStatus(lesser.u, chars)}`);
         if (thrall) lines.push(`Thrall: <b>${thrall.u.name}</b>${aliveStatus(thrall.u, chars)}`);
-        return base + (lines.length? `<div style="margin-top:10px">${lines.map(x=>`• ${x}`).join('<br>')}</div>`:'') + `</div>`;
+        return base + (lines.length? `<div style="margin-top:10px">${lines.map(x=>`G�� ${x}`).join('<br>')}</div>`:'') + `</div>`;
       }
       if (me.specialRole === 'Thrall'){
         let elder=null;
@@ -211,8 +284,8 @@ const MB = (function(){
           if (u.specialRole === 'Elder Vampire') elder = {uid,u};
         }
         const freed = elder ? (elder.u.dead || (elder.u.charId && chars[elder.u.charId]?.dead)) : false;
-        const line = elder ? `Elder Vampire: <b>${elder.u.name}</b>${aliveStatus(elder.u, chars)}${freed?' — you are <b>SET FREE</b>.':''}` : 'Elder Vampire: (unknown)';
-        return base + `<div style="margin-top:10px">• ${line}</div></div>`;
+        const line = elder ? `Elder Vampire: <b>${elder.u.name}</b>${aliveStatus(elder.u, chars)}${freed?' G�� you are <b>SET FREE</b>.':''}` : 'Elder Vampire: (unknown)';
+        return base + `<div style="margin-top:10px">G�� ${line}</div></div>`;
       }
       return base + `</div>`;
     }
@@ -224,7 +297,7 @@ const MB = (function(){
         const ms = Math.max(0, (endsAt||0) - Date.now());
         const m = Math.floor(ms/60000);
         const s = Math.floor((ms%60000)/1000).toString().padStart(2,'0');
-        pillEl.textContent = endsAt ? `⏳ ${m}:${s}` : '⏳ —';
+        pillEl.textContent = endsAt ? `GŦ ${m}:${s}` : 'GŦ G��';
         if (ms<=0 && timer){ clearInterval(timer); timer=null; }
       };
       tick();
@@ -262,11 +335,11 @@ const MB = (function(){
       let bestKey=null, bestCount=-1;
       Object.entries(tally).forEach(([k,c])=>{ if (c>bestCount){ bestKey=k; bestCount=c; } });
       const needed = Math.ceil(aliveCount * 0.5);
-      let html = `<div>Alive voters: <b>${aliveCount}</b> • Threshold to eliminate: <b>${needed}</b></div><br>`;
+      let html = `<div>Alive voters: <b>${aliveCount}</b> G�� Threshold to eliminate: <b>${needed}</b></div><br>`;
       for (const [k,c] of Object.entries(tally)){
         const u = users[k];
         const label = u ? u.name : k;
-        html += `• ${label}: <b class="tally">${c}</b><br>`;
+        html += `G�� ${label}: <b class="tally">${c}</b><br>`;
       }
       if (bestKey && bestCount >= needed){
         const u = users[bestKey];
@@ -278,7 +351,7 @@ const MB = (function(){
       }else{
         html += `<br><b>No elimination.</b>`;
       }
-      if (popup) popup('Mob Justice — Results', html);
+      if (popup) popup('Mob Justice G�� Results', html);
       await checkWinConditions(room, popup);
     }
   
@@ -331,7 +404,14 @@ const MB = (function(){
       verifyRoomPassword, claimCharacter, getState,
       roleDetailsText, renderRoleDetails, updateCountdownPill,
       computeTally, closeVotingAndResolve, checkWinConditions,
-      parseCSV, bindModal
+      parseCSV, bindModal,
+      storage,
+      isDebug: ()=>DEBUG_MODE
     };
   })();
   
+
+
+
+
+

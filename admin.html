@@ -135,11 +135,12 @@
 MB.initFirebase();
 const db = MB.getDB();
 const {$, hashSHA256, DEFAULT_CHAR_OBJS, DEFAULT_CLUES, parseCSV,
-       closeVotingAndResolve, checkWinConditions, bindModal} = MB;
+       closeVotingAndResolve, checkWinConditions, bindModal, storage} = MB;
+const store = storage || {get:()=>"", set:()=>{}, remove:()=>{}, clear:()=>{}};
 const {popup} = bindModal('closeModalBtn');
 
 let ADMIN_OK = false;
-function currentAdminRoom(){ return (($('adminRoom').value)||localStorage.getItem('mb_room_admin')||'').toUpperCase(); }
+function currentAdminRoom(){ return (($('adminRoom').value)||store.get('mb_room_admin')||'').toUpperCase(); }
 
 $('adminAuthBtn').onclick = async ()=>{
   const room = currentAdminRoom();
@@ -151,8 +152,8 @@ $('adminAuthBtn').onclick = async ()=>{
     const ok = (await hashSHA256(pass)) === snap.val();
     if (!ok) throw new Error('Incorrect admin password');
     ADMIN_OK = true;
-    localStorage.setItem('mb_room_admin', room);
-    localStorage.setItem('mb_is_admin', '1');
+    store.set('mb_room_admin', room);
+    store.set('mb_is_admin', '1');
     $('adminBody').hidden = false;
     out.textContent = 'Admin unlocked.';
     await refreshAll();
@@ -484,3 +485,5 @@ $('useDefaultCluesBtn').onclick = async ()=>{
 </script>
 </body>
 </html>
+
+

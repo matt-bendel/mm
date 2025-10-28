@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Moonlit Bandanas — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="title">Moonlit Bandanas</div>
+  <div class="subtitle">Admin • Rounds • Voting • Clues • Roles • Deaths</div>
+  <div class="navlinks"><a href="/">Join</a> · <a href="/create">Create</a></div>
+</header>
+
+<div class="wrap">
+  <section class="panel">
+    <div class="grid">
+      <div class="card">
+        <b>Admin Access</b>
+        <div class="row" style="gap:12px; margin-top:8px">
+          <div style="flex:1"><label>Room Code</label><input id="adminRoom" placeholder="Room code" /></div>
+          <div style="flex:1"><label>Admin Password</label><input id="adminPass" type="password" placeholder="Admin password" /></div>
+          <button class="btn" id="adminAuthBtn">Unlock Admin</button>
+          <div id="adminAuthStatus" class="muted"></div>
+        </div>
+      </div>
+
+      <div id="adminBody" hidden>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>Characters</h3>
+            <div class="row" style="gap:12px; flex-wrap:wrap">
+              <button class="btn secondary" id="loadRoomBtn">Load Lists</button>
+              <button class="btn secondary" id="watchRoomBtn">Live Watch</button>
+              <select id="deadToggleSelect"><option value="">— select claimed player —</option></select>
+              <button class="btn" id="markDeadBtn">Mark Dead</button>
+              <button class="btn secondary" id="markAliveBtn">Mark Alive</button>
+            </div>
+            <div class="divider"></div>
+            <h4>Unclaimed</h4><div id="unclaimedBox" class="muted">—</div>
+            <div class="divider"></div>
+            <h4>Claimed</h4><div id="claimedBox" class="muted">—</div>
+          </div>
+
+          <div class="card">
+            <h3>Assign Special Roles</h3>
+            <div class="muted">Select a claimed player and assign.</div>
+            <div class="row" style="gap:12px; margin-top:8px">
+              <select id="playerSelect"><option value="">— select player —</option></select>
+              <select id="specialSelect">
+                <option value="">(none)</option>
+                <option>Elder Vampire</option>
+                <option>Lesser Vampire</option>
+                <option>Thrall</option>
+                <option>Night Warden</option>
+                <option>Mirrorcloak</option>
+                <option>Gravespeaker</option>
+              </select>
+              <button class="btn" id="assignSpecialBtn">Assign</button>
+            </div>
+            <div id="specialStatus" class="muted" style="margin-top:8px"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Game, Round & Mob Justice</h3>
+          <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
+            <div><label>Game State</label><input id="gameStateDisplay" disabled /></div>
+            <button class="btn" id="startGameBtn">Start Game</button>
+            <button class="btn secondary" id="stopGameBtn">Back to Waiting</button>
+          </div>
+          <div class="divider"></div>
+          <div class="row" style="gap:10px; align-items:flex-end">
+            <div><label>Round</label><input id="adminRoundDisplay" disabled /></div>
+            <button class="btn" id="nextRoundBtn">Advance to Next Round</button>
+          </div>
+          <div class="divider"></div>
+          <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
+            <div><label>Voting Status</label><input id="votingStatusDisplay" disabled /></div>
+            <button class="btn secondary" id="start5minVoteBtn">Start 5-Minute Vote</button>
+            <button class="btn secondary" id="openVotingBtn">Open Voting</button>
+            <button class="btn secondary" id="closeVotingBtn">Close Voting</button>
+            <button class="btn secondary" id="clearVotingBtn">Clear Candidates & Votes</button>
+          </div>
+          <div class="divider"></div>
+          <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
+            <select id="candidatePlayerSelect"><option value="">— add candidate (claimed players) —</option></select>
+            <button class="btn" id="addCandidateBtn">Add Candidate</button>
+            <select id="removeCandidateSelect"><option value="">— remove candidate —</option></select>
+            <button class="btn secondary" id="removeCandidateBtn">Remove</button>
+          </div>
+          <div class="divider"></div>
+          <div id="adminTallyBox" class="muted">No votes yet.</div>
+        </div>
+
+        <div class="card">
+          <h3>Clues — Reveal / Conceal</h3>
+          <div class="row" style="gap:10px; flex-wrap:wrap">
+            <button class="btn secondary" id="reloadCluesBtn">Reload Clues</button>
+          </div>
+          <div id="adminCluesBox" class="grid" style="gap:12px; margin-top:10px"></div>
+        </div>
+
+        <div class="card">
+          <h3>Import via CSV</h3>
+          <div class="row" style="gap:14px; align-items:flex-end; flex-wrap:wrap">
+            <div><label>Characters CSV (name,description)</label><input id="csvChars" type="file" accept=".csv" /></div>
+            <button class="btn" id="importCharsBtn">Import Characters</button>
+            <button class="btn secondary" id="useDefaultCharsBtn">Use Default Characters</button>
+          </div>
+          <div class="divider"></div>
+          <div class="row" style="gap:14px; align-items:flex-end; flex-wrap:wrap">
+            <div><label>Clues CSV (id,title,body)</label><input id="csvClues" type="file" accept=".csv" /></div>
+            <button class="btn" id="importCluesBtn">Import Clues</button>
+            <button class="btn secondary" id="useDefaultCluesBtn">Use Default Clues</button>
+          </div>
+          <div class="muted" id="csvStatus" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<dialog id="resultModal">
+  <div class="modal-head" id="modalTitle">Result</div>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-actions"><button class="btn secondary" id="closeModalBtn">Close</button></div>
+</dialog>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="/app.js"></script>
+<script>
+MB.initFirebase();
+const db = MB.getDB();
+const {$, hashSHA256, DEFAULT_CHAR_OBJS, DEFAULT_CLUES, parseCSV,
+       closeVotingAndResolve, checkWinConditions, bindModal} = MB;
+const {popup} = bindModal('closeModalBtn');
+
+let ADMIN_OK = false;
+function currentAdminRoom(){ return (($('adminRoom').value)||localStorage.getItem('mb_room_admin')||'').toUpperCase(); }
+
+$('adminAuthBtn').onclick = async ()=>{
+  const room = currentAdminRoom();
+  const pass = ($('adminPass').value||'').trim();
+  const out = $('adminAuthStatus');
+  try{
+    const snap = await db.ref(`rooms/${room}/adminHash`).get();
+    if (!snap.exists()) throw new Error('Room not found');
+    const ok = (await hashSHA256(pass)) === snap.val();
+    if (!ok) throw new Error('Incorrect admin password');
+    ADMIN_OK = true;
+    localStorage.setItem('mb_room_admin', room);
+    localStorage.setItem('mb_is_admin', '1');
+    $('adminBody').hidden = false;
+    out.textContent = 'Admin unlocked.';
+    await refreshAll();
+  }catch(e){
+    ADMIN_OK = false;
+    $('adminBody').hidden = true;
+    out.textContent = 'Auth failed: ' + e.message;
+  }
+};
+
+async function refreshAll(){
+  await renderLists();
+  await refreshPlayerDropdowns();
+  await refreshCandidateSelectors();
+  await renderAdminTally();
+  await updateRoundGameVotingDisplays();
+  await renderAdminClues();
+}
+
+async function renderLists(){
+  const room = currentAdminRoom();
+  const snap = await db.ref(`rooms/${room}/characters`).get();
+  if (!snap.exists()){ $('unclaimedBox').textContent='—'; $('claimedBox').textContent='—'; return; }
+  const chars = snap.val(); const entries = Object.entries(chars);
+  const un = entries.filter(([id,c])=>!c.claimedBy).map(([id,c])=>`• ${c.name}${c.dead?' (dead)':''}`).join("<br>") || '—';
+  const cl = entries.filter(([id,c])=>c.claimedBy).map(([id,c])=>`• <b>${c.name}</b> <span class="muted">→ ${c.claimedBy}${c.dead?' (dead)':''}</span>`).join("<br>") || '—';
+  $('unclaimedBox').innerHTML = un;
+  $('claimedBox').innerHTML = cl;
+}
+
+let liveOff = null;
+$('loadRoomBtn').onclick = refreshAll;
+$('watchRoomBtn').onclick = ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  if (liveOff) { liveOff(); liveOff=null; }
+  const ref = db.ref(`rooms/${room}`);
+  const cb = ref.on('value', async _snap=> { await refreshAll(); });
+  liveOff = ()=> ref.off('value', cb);
+  $('adminAuthStatus').textContent = 'Watching live…';
+};
+
+async function refreshPlayerDropdowns(){
+  const room = currentAdminRoom();
+  const usersSnap = await db.ref(`rooms/${room}/users`).get();
+  const sel = $('playerSelect');
+  const candSel = $('candidatePlayerSelect');
+  const deadSel = $('deadToggleSelect');
+  sel.innerHTML = '<option value="">— select player —</option>';
+  candSel.innerHTML = '<option value="">— add candidate (claimed players) —</option>';
+  deadSel.innerHTML = '<option value="">— select claimed player —</option>';
+  if (!usersSnap.exists()) return;
+  const users = usersSnap.val();
+  for (const [uid,u] of Object.entries(users)){
+    const opt = new Option(u.name, uid); sel.add(opt);
+    const opt2 = new Option(u.name, uid); candSel.add(opt2);
+    const opt3 = new Option(`${u.name}${u.dead?' (dead)':''}`, uid); deadSel.add(opt3);
+  }
+}
+
+$('assignSpecialBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const uid = $('playerSelect').value;
+  const role = $('specialSelect').value || null;
+  if (!uid){ $('specialStatus').textContent='Pick a player'; return; }
+  await db.ref(`rooms/${room}/users/${uid}/specialRole`).set(role);
+  $('specialStatus').textContent = 'Saved.';
+  await checkWinConditions(room, popup);
+};
+
+$('markDeadBtn').onclick = ()=> toggleDead(true);
+$('markAliveBtn').onclick = ()=> toggleDead(false);
+async function toggleDead(dead){
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const uid = $('deadToggleSelect').value;
+  if (!uid) return;
+  const uSnap = await db.ref(`rooms/${room}/users/${uid}`).get();
+  if (!uSnap.exists()) return;
+  const u = uSnap.val();
+  await db.ref(`rooms/${room}/users/${uid}/dead`).set(dead);
+  if (u.charId) await db.ref(`rooms/${room}/characters/${u.charId}/dead`).set(dead);
+  await renderAdminTally(); await updateRoundGameVotingDisplays(); await checkWinConditions(room, popup);
+}
+
+async function getState(room){
+  const snap = await db.ref(`rooms/${room}/state`).get();
+  return snap.exists()? snap.val(): {};
+}
+async function updateRoundGameVotingDisplays(){
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  $('adminRoundDisplay').value = state.round || 1;
+  $('votingStatusDisplay').value = state.voting?.open ? 'OPEN' : (state.voting?.closed ? 'CLOSED' : '—');
+  $('gameStateDisplay').value = state.gameStarted ? 'STARTED' : 'WAITING';
+}
+
+$('startGameBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  await db.ref(`rooms/${room}/state`).set({
+    gameStarted:true,
+    round: state.round || 1,
+    voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null }
+  });
+  await updateRoundGameVotingDisplays();
+  popup('Game Started', 'Players now see objectives, notes, and Mob Justice.');
+};
+$('stopGameBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  await db.ref(`rooms/${room}/state`).set({
+    gameStarted:false,
+    round: state.round || 1,
+    voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null }
+  });
+  await updateRoundGameVotingDisplays();
+  popup('Back to Waiting', 'Players now see only character and role info.');
+};
+$('nextRoundBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  const next = (state.round||1) + 1;
+  await db.ref(`rooms/${room}/state`).set({
+    gameStarted: state.gameStarted || false,
+    round: next,
+    voting: { open:false, closed:false, candidates:null, votes:null, endsAt:null }
+  });
+  await updateRoundGameVotingDisplays(); await renderAdminTally(); await checkWinConditions(room, popup);
+};
+
+$('openVotingBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  await db.ref(`rooms/${room}/state/voting`).set({
+    open:true, closed:false,
+    candidates: state.voting?.candidates || null,
+    votes: state.voting?.votes || null,
+    endsAt:null
+  });
+  await updateRoundGameVotingDisplays(); await renderAdminTally();
+};
+$('closeVotingBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  await closeVotingAndResolve(room, popup);
+};
+$('clearVotingBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  await db.ref(`rooms/${room}/state/voting`).set({ open:false, closed:false, candidates:null, votes:null, endsAt:null });
+  await updateRoundGameVotingDisplays(); await refreshCandidateSelectors(); await renderAdminTally();
+};
+$('start5minVoteBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const endsAt = Date.now() + 5*60*1000;
+  const state = await getState(room);
+  await db.ref(`rooms/${room}/state/voting`).set({
+    open:true, closed:false,
+    candidates: state.voting?.candidates || null,
+    votes: state.voting?.votes || null,
+    endsAt
+  });
+  await updateRoundGameVotingDisplays(); await renderAdminTally();
+  setTimeout(()=> MB.closeVotingAndResolve(room, popup), (5*60*1000)+1100);
+};
+
+async function refreshCandidateSelectors(){
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  const candidates = state.voting?.candidates || {};
+  const usersSnap = await db.ref(`rooms/${room}/users`).get();
+  const charsSnap = await db.ref(`rooms/${room}/characters`).get();
+  const users = usersSnap.exists()? usersSnap.val() : {};
+  const chars = charsSnap.exists()? charsSnap.val() : {};
+  const removeSel = $('removeCandidateSelect');
+  removeSel.innerHTML = '<option value="">— remove candidate —</option>';
+  for (const key of Object.keys(candidates||{})){
+    const u = users[key]; const charName = u && u.charId && chars[u.charId] ? chars[u.charId].name : '';
+    removeSel.add(new Option(u ? `${u.name}${charName? ' — '+charName:''}` : key, key));
+  }
+  const candAddSel = $('candidatePlayerSelect');
+  candAddSel.innerHTML = '<option value="">— add candidate (claimed players) —</option>';
+  for (const [uid,u] of Object.entries(users||{})){
+    candAddSel.add(new Option(u.name, uid));
+  }
+}
+$('addCandidateBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const uid = $('candidatePlayerSelect').value;
+  if (!uid) return;
+  await db.ref(`rooms/${room}/state/voting/candidates/${uid}`).set(true);
+  await refreshCandidateSelectors(); await renderAdminTally();
+};
+$('removeCandidateBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const uid = $('removeCandidateSelect').value;
+  if (!uid) return;
+  await db.ref(`rooms/${room}/state/voting/candidates/${uid}`).remove();
+  const votesSnap = await db.ref(`rooms/${room}/state/voting/votes`).get();
+  if (votesSnap.exists()){
+    const votes = votesSnap.val();
+    for (const [voter, choice] of Object.entries(votes)){
+      if (choice === uid) await db.ref(`rooms/${room}/state/voting/votes/${voter}`).remove();
+    }
+  }
+  await refreshCandidateSelectors(); await renderAdminTally();
+};
+
+async function renderAdminTally(){
+  const room = currentAdminRoom();
+  const state = await getState(room);
+  const voting = state.voting || {};
+  const [usersSnap, charsSnap] = await Promise.all([
+    db.ref(`rooms/${room}/users`).get(),
+    db.ref(`rooms/${room}/characters`).get()
+  ]);
+  const users = usersSnap.exists()? usersSnap.val(): {};
+  const chars = charsSnap.exists()? charsSnap.val(): {};
+  const candidates = voting.candidates || {};
+  const votes = voting.votes || {};
+  const display = Object.keys(candidates).map(k=>{
+    const u = users[k]; const charName = u && u.charId && chars[u.charId] ? chars[u.charId].name : '';
+    return {key:k, label: u ? `${u.name}${charName? ' — '+charName:''}` : k};
+  });
+  const alive = Object.entries(users).filter(([uid,u])=> !(u.dead || (u.charId && chars[u.charId]?.dead))).length;
+  const tally = MB.computeTally(users, chars, votes);
+  const lines = display.map(d=>`• ${d.label}: <b class="tally">${tally[d.key]||0}</b>`).join('<br>');
+  $('adminTallyBox').innerHTML = (alive? `<div class="muted">Alive voters: ${alive}</div>` : '') + (lines || 'No votes yet.');
+}
+
+/* Clues: reveal/conceal */
+$('reloadCluesBtn').onclick = renderAdminClues;
+async function renderAdminClues(){
+  const room = currentAdminRoom();
+  const box = $('adminCluesBox'); box.innerHTML='';
+  const snap = await db.ref(`rooms/${room}/clues`).get();
+  if (!snap.exists()){ box.innerHTML='<div class="muted">No clues seeded.</div>'; return; }
+  const clues = snap.val();
+  Object.entries(clues).forEach(([id,c])=>{
+    const el = document.createElement('div');
+    el.className='parchment';
+    el.innerHTML = `
+      <div class="tag">Clue ${id} — ${c.revealed? '<b>Revealed</b>':'Hidden'}</div>
+      <h4>${c.title}</h4>
+      <div>${c.body}</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ${c.revealed?'secondary':''}" data-id="${id}" data-action="${c.revealed?'hide':'reveal'}">
+          ${c.revealed? 'Hide':'Reveal'}
+        </button>
+      </div>`;
+    box.appendChild(el);
+  });
+  [...box.querySelectorAll('button[data-action]')].forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.getAttribute('data-id'); const act = btn.getAttribute('data-action');
+      await db.ref(`rooms/${currentAdminRoom()}/clues/${id}/revealed`).set(act==='reveal');
+      await renderAdminClues();
+    });
+  });
+}
+
+/* CSV import */
+$('importCharsBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const file = $('csvChars').files[0];
+  if (!file){ $('csvStatus').textContent='Select a characters CSV.'; return; }
+  const txt = await file.text();
+  const rows = parseCSV(txt).filter(r=>r.length>=1);
+  const chars={}; let i=0;
+  for (const r of rows){
+    const name=(r[0]||'').trim(); if (!name) continue;
+    const desc=(r[1]||'').trim()||null;
+    const id='c_'+(i++).toString().padStart(3,'0');
+    chars[id]={name: desc ? `${name} — ${desc}` : name, desc, claimedBy:null, claimedAt:null, dead:false};
+  }
+  if (!Object.keys(chars).length){ $('csvStatus').textContent='No valid rows found.'; return; }
+  await db.ref(`rooms/${room}/characters`).set(chars);
+  $('csvStatus').textContent='Characters imported.';
+  await refreshAll();
+};
+$('useDefaultCharsBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const chars={}; MB.DEFAULT_CHAR_OBJS.forEach((o,i)=>{
+    const id='c_'+i.toString().padStart(3,'0');
+    const combined = o.desc ? `${o.name} — ${o.desc}` : o.name;
+    chars[id]={name:combined, desc:o.desc||null, claimedBy:null, claimedAt:null, dead:false};
+  });
+  await db.ref(`rooms/${room}/characters`).set(chars);
+  $('csvStatus').textContent='Default characters loaded.';
+  await refreshAll();
+};
+$('importCluesBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const file = $('csvClues').files[0];
+  if (!file){ $('csvStatus').textContent='Select a clues CSV.'; return; }
+  const txt = await file.text();
+  const rows = parseCSV(txt).filter(r=>r.length>=3);
+  const clues={};
+  for (const r of rows){
+    const id=(r[0]||'').trim(); const title=(r[1]||'').trim(); const body=(r[2]||'').trim();
+    if (!id || !title || !body) continue;
+    clues[id]={title, body, revealed:false};
+  }
+  if (!Object.keys(clues).length){ $('csvStatus').textContent='No valid clue rows found.'; return; }
+  await db.ref(`rooms/${room}/clues`).set(clues);
+  $('csvStatus').textContent='Clues imported.';
+  await renderAdminClues();
+};
+$('useDefaultCluesBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const clues={}; DEFAULT_CLUES.forEach(c=> clues[c.id]={title:c.title, body:c.body, revealed:false});
+  await db.ref(`rooms/${room}/clues`).set(clues);
+  $('csvStatus').textContent='Default clues loaded.';
+  await renderAdminClues();
+};
+</script>
+</body>
+</html>

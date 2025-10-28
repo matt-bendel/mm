@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Moonlit Bandanas — Create Room</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <div class="title">Moonlit Bandanas</div>
+  <div class="subtitle">Create / Reset Room • Characters • Goals • Clues</div>
+  <div class="navlinks"><a href="/">Join</a> · <a href="/admin">Admin</a></div>
+</header>
+
+<div class="wrap">
+  <section class="panel">
+    <div class="grid grid-2">
+      <div>
+        <label>Room Code</label><input id="roomCode" placeholder="e.g., REVEL-2025" />
+        <div class="muted">Letters/numbers/dashes (3–30 chars).</div>
+        <label style="margin-top:12px">Room Password</label><input id="roomPassword" type="password" placeholder="Password players must enter" />
+        <div class="muted">Stored as SHA-256 hash.</div>
+        <label style="margin-top:12px">Admin Password (secret)</label><input id="roomAdminPassword" type="password" placeholder="Required to unlock Admin" />
+        <div class="muted">Stored as SHA-256 hash.</div>
+        <div class="row" style="margin-top:14px"><button class="btn" id="createRoomBtn">Create / Reset Room</button><div id="hostStatus" class="muted"></div></div>
+      </div>
+      <div>
+        <b>Quick Links</b>
+        <div class="row" style="margin-top:8px">
+          <a class="btn secondary" href="/">Go to Join</a>
+          <a class="btn secondary" href="/admin">Go to Admin</a>
+        </div>
+        <div class="muted" style="margin-top:10px">After creating the room, players can immediately join at the Join page.</div>
+      </div>
+    </div>
+  </section>
+
+  <nav class="navlinks" style="margin-top:6px">
+    <a href="#" id="tab-characters" aria-selected="true">Characters</a> ·
+    <a href="#" id="tab-goals" aria-selected="false">Goals</a> ·
+    <a href="#" id="tab-clues" aria-selected="false">Clues</a>
+  </nav>
+
+  <section id="panel-characters" class="panel">
+    <label>Character Pool (name — biography, one per line)</label>
+    <textarea id="rolePool"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn secondary" id="fillDefaultsBtn">Reset To Default Characters</button></div>
+  </section>
+
+  <section id="panel-goals" class="panel" hidden>
+    <label>Default Goals (one per line — shown one per round)</label>
+    <textarea id="goalsBox"></textarea>
+    <div class="muted">Players see one new goal each round (including the first live round).</div>
+  </section>
+
+  <section id="panel-clues" class="panel" hidden>
+    <div class="row" style="gap:12px; flex-wrap:wrap">
+      <button class="btn secondary" id="useDefaultCluesBtn">Load Default Clues</button>
+      <span class="muted">Clues appear here for review; Admin reveals them during play.</span>
+    </div>
+    <div id="clueList" class="grid" style="gap:14px; margin-top:8px"></div>
+  </section>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="/app.js"></script>
+<script>
+MB.initFirebase();
+const db = MB.getDB();
+const {$, hashSHA256, DEFAULT_CHAR_OBJS, DEFAULT_TASKS, DEFAULT_CLUES} = MB;
+
+// Tabs
+function showPanel(which){
+  $('panel-characters').hidden = which!=='characters';
+  $('panel-goals').hidden = which!=='goals';
+  $('panel-clues').hidden = which!=='clues';
+  $('tab-characters').setAttribute('aria-selected', which==='characters');
+  $('tab-goals').setAttribute('aria-selected', which==='goals');
+  $('tab-clues').setAttribute('aria-selected', which==='clues');
+}
+$('tab-characters').onclick = e=>{e.preventDefault();showPanel('characters')};
+$('tab-goals').onclick = e=>{e.preventDefault();showPanel('goals')};
+$('tab-clues').onclick = e=>{e.preventDefault();showPanel('clues'); renderCluesPreview();};
+
+// Defaults
+function fillDefaultChars(){
+  $('rolePool').value = DEFAULT_CHAR_OBJS.map(o=>`${o.name} — ${o.desc}`).join("\n");
+}
+function fillDefaultGoals(){
+  $('goalsBox').value = DEFAULT_TASKS.join("\n");
+}
+$('fillDefaultsBtn').onclick = fillDefaultChars;
+fillDefaultChars(); fillDefaultGoals();
+
+$('createRoomBtn').onclick = async ()=>{
+  const codeRaw = ($('roomCode').value||'').trim();
+  const passRaw = ($('roomPassword').value||'').trim();
+  const adminPassRaw = ($('roomAdminPassword').value||'').trim();
+  const hostStatus = $('hostStatus');
+  if (!/^[A-Za-z0-9-]{3,30}$/.test(codeRaw)){ hostStatus.textContent='Invalid room code'; return; }
+  if (!passRaw || passRaw.length<4){ hostStatus.textContent='Room password too short'; return; }
+  if (!adminPassRaw || adminPassRaw.length<6){ hostStatus.textContent='Admin password too short'; return; }
+  const code = codeRaw.toUpperCase();
+  const passHash = await hashSHA256(passRaw);
+  const adminHash = await hashSHA256(adminPassRaw);
+
+  // Characters
+  const lines = ($('rolePool').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const unique = [...new Set(lines)];
+  if (!unique.length){ hostStatus.textContent='No characters provided'; return; }
+  const chars = {};
+  unique.forEach((line,i)=>{
+    const id = 'c_'+i.toString().padStart(3,'0');
+    const [name, ...rest] = line.split('—');
+    const nm = (name||'').trim();
+    const desc = (rest.join('—')||'').trim() || null;
+    chars[id] = {name: desc ? `${nm} — ${desc}` : nm, desc, claimedBy:null, claimedAt:null, dead:false};
+  });
+
+  // Tasks/Goals
+  const goals = ($('goalsBox').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const tasks = goals.length ? goals : DEFAULT_TASKS;
+
+  // Clues defaults
+  const clues = {}; DEFAULT_CLUES.forEach(c=> clues[c.id]={title:c.title, body:c.body, revealed:false});
+
+  const state = { gameStarted:false, round: 1, voting:{ open:false, closed:false, candidates:null, votes:null, endsAt:null } };
+  try{
+    await db.ref(`rooms/${code}`).set({
+      passHash, adminHash, createdAt: Date.now(),
+      characters: chars, users: null, clues, state,
+      defaults: { tasks } // store chosen defaults for future joins
+    });
+    hostStatus.textContent = 'Room ready: '+code;
+  }catch(e){ hostStatus.textContent = 'Error: '+e.message; }
+};
+
+// Clues preview
+function renderCluesPreview(){
+  const box = $('clueList'); box.innerHTML='';
+  (DEFAULT_CLUES||[]).forEach(c=>{
+    const el = document.createElement('article');
+    el.className='parchment';
+    el.innerHTML = `<div class="tag">Clue ${c.id}</div><h4>${c.title}</h4><div>${c.body}</div>`;
+    box.appendChild(el);
+  });
+}
+$('useDefaultCluesBtn').onclick = renderCluesPreview;
+</script>
+</body>
+</html>

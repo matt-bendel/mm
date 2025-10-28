@@ -4,13 +4,13 @@
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Moonlit Bandanas — Create Room</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <header>
   <div class="title">Moonlit Bandanas</div>
   <div class="subtitle">Create / Reset Room • Characters • Goals • Clues</div>
-  <div class="navlinks"><a href="/">Join</a> · <a href="/admin">Admin</a></div>
+  <div class="navlinks"><a href="./index.html">Join</a> · <a href="./admin.html">Admin</a></div>
 </header>
 
 <div class="wrap">
@@ -28,8 +28,8 @@
       <div>
         <b>Quick Links</b>
         <div class="row" style="margin-top:8px">
-          <a class="btn secondary" href="/">Go to Join</a>
-          <a class="btn secondary" href="/admin">Go to Admin</a>
+          <a class="btn secondary" href="./index.html">Go to Join</a>
+          <a class="btn secondary" href="./admin.html">Go to Admin</a>
         </div>
         <div class="muted" style="margin-top:10px">After creating the room, players can immediately join at the Join page.</div>
       </div>
@@ -63,13 +63,19 @@
   </section>
 </div>
 
+<dialog id="resultModal">
+  <div class="modal-head" id="modalTitle">Result</div>
+  <div class="modal-body" id="modalBody"></div>
+  <div class="modal-actions"><button class="btn secondary" id="closeModalBtn">Close</button></div>
+</dialog>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="/app.js"></script>
+<script src="./app.js"></script>
 <script>
 MB.initFirebase();
 const db = MB.getDB();
-const {$, hashSHA256, DEFAULT_CHAR_OBJS, DEFAULT_TASKS, DEFAULT_CLUES} = MB;
+const {$, DEFAULT_CHAR_OBJS, DEFAULT_TASKS, DEFAULT_CLUES, hashSHA256} = MB;
 
 // Tabs
 function showPanel(which){
@@ -131,7 +137,7 @@ $('createRoomBtn').onclick = async ()=>{
     await db.ref(`rooms/${code}`).set({
       passHash, adminHash, createdAt: Date.now(),
       characters: chars, users: null, clues, state,
-      defaults: { tasks } // store chosen defaults for future joins
+      defaults: { tasks }
     });
     hostStatus.textContent = 'Room ready: '+code;
   }catch(e){ hostStatus.textContent = 'Error: '+e.message; }

@@ -4,13 +4,13 @@
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Moonlit Bandanas — Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <header>
   <div class="title">Moonlit Bandanas</div>
   <div class="subtitle">Admin • Rounds • Voting • Clues • Roles • Deaths</div>
-  <div class="navlinks"><a href="/">Join</a> · <a href="/create">Create</a></div>
+  <div class="navlinks"><a href="./index.html">Join</a> · <a href="./create.html">Create</a></div>
 </header>
 
 <div class="wrap">
@@ -130,7 +130,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="/app.js"></script>
+<script src="./app.js"></script>
 <script>
 MB.initFirebase();
 const db = MB.getDB();
@@ -207,9 +207,9 @@ async function refreshPlayerDropdowns(){
   if (!usersSnap.exists()) return;
   const users = usersSnap.val();
   for (const [uid,u] of Object.entries(users)){
-    const opt = new Option(u.name, uid); sel.add(opt);
-    const opt2 = new Option(u.name, uid); candSel.add(opt2);
-    const opt3 = new Option(`${u.name}${u.dead?' (dead)':''}`, uid); deadSel.add(opt3);
+    sel.add(new Option(u.name, uid));
+    candSel.add(new Option(u.name, uid));
+    deadSel.add(new Option(`${u.name}${u.dead?' (dead)':''}`, uid));
   }
 }
 
@@ -430,7 +430,7 @@ $('importCharsBtn').onclick = async ()=>{
   const file = $('csvChars').files[0];
   if (!file){ $('csvStatus').textContent='Select a characters CSV.'; return; }
   const txt = await file.text();
-  const rows = parseCSV(txt).filter(r=>r.length>=1);
+  const rows = MB.parseCSV(txt).filter(r=>r.length>=1);
   const chars={}; let i=0;
   for (const r of rows){
     const name=(r[0]||'').trim(); if (!name) continue;
@@ -461,7 +461,7 @@ $('importCluesBtn').onclick = async ()=>{
   const file = $('csvClues').files[0];
   if (!file){ $('csvStatus').textContent='Select a clues CSV.'; return; }
   const txt = await file.text();
-  const rows = parseCSV(txt).filter(r=>r.length>=3);
+  const rows = MB.parseCSV(txt).filter(r=>r.length>=3);
   const clues={};
   for (const r of rows){
     const id=(r[0]||'').trim(); const title=(r[1]||'').trim(); const body=(r[2]||'').trim();
@@ -476,7 +476,7 @@ $('importCluesBtn').onclick = async ()=>{
 $('useDefaultCluesBtn').onclick = async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
-  const clues={}; DEFAULT_CLUES.forEach(c=> clues[c.id]={title:c.title, body:c.body, revealed:false});
+  const clues={}; MB.DEFAULT_CLUES.forEach(c=> clues[c.id]={title:c.title, body:c.body, revealed:false});
   await db.ref(`rooms/${room}/clues`).set(clues);
   $('csvStatus').textContent='Default clues loaded.';
   await renderAdminClues();

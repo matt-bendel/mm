@@ -8,17 +8,18 @@
 
 // -------- Firebase Config --------
 const MB = (function(){
-    const DEBUG_NO_COOKIES = false; // flip true for multi-tab testing (no cookies)
+    const DEBUG_NO_COOKIES = true; // flip true for multi-tab testing (no cookies)
   
     const firebaseConfig = {
-      apiKey: "REPLACE_ME",
-      authDomain: "REPLACE_ME.firebaseapp.com",
-      databaseURL: "https://REPLACE_ME-default-rtdb.firebaseio.com",
-      projectId: "REPLACE_ME",
-      storageBucket: "REPLACE_ME.appspot.com",
-      messagingSenderId: "REPLACE_ME",
-      appId: "REPLACE_ME"
-    };
+        apiKey: "AIzaSyDNqVMgr5CHIe-ajgikCaJp0kzB2CpbOWs",
+        authDomain: "murdermystery-cd241.firebaseapp.com",
+        databaseURL: "https://murdermystery-cd241-default-rtdb.firebaseio.com",
+        projectId: "murdermystery-cd241",
+        storageBucket: "murdermystery-cd241.firebasestorage.app",
+        messagingSenderId: "724748560349",
+        appId: "1:724748560349:web:4ba1d4f5ed874419167834",
+        measurementId: "G-7RS065D3HZ"
+      };
   
     // expose config (optional)
     const getConfig = ()=> firebaseConfig;

@@ -315,7 +315,6 @@ async function renderPlayerVoting(room, uidVal, state, users, chars){
   const candidates = voting.candidates || {};
   const votes = voting.votes || {};
   const items = Object.keys(candidates);
-  const nominated = !!candidates[uidVal]; // nominated players cannot vote
 
   // Build candidate display (Real Name + Character Name only)
   const display = items.map(k=>{
@@ -328,21 +327,10 @@ async function renderPlayerVoting(room, uidVal, state, users, chars){
   });
 
   const myVote = votes[uidVal] || '';
+  const youAreCandidate = !!candidates[uidVal];
 
   if (voting.open){
-    if (nominated){
-      help.textContent='Voting is OPEN. You are a current candidate and cannot vote.';
-      list.innerHTML = display.map(d=>`
-        <label class="vote-item">
-          <input type="radio" name="voteChoice" value="${d.key}" disabled/>
-          <div>${d.label}</div>
-        </label>`).join('') || '<div class="muted">No candidates yet.</div>';
-      btn.disabled = true;
-      tallyBox.innerHTML='<span class="muted">Tally will appear when voting closes.</span>';
-      return;
-    }
-
-    help.textContent='Voting is OPEN. Choose one candidate:';
+    help.textContent = 'Voting is OPEN. Choose one candidate.' + (youAreCandidate ? ' (You are also a candidate.)' : '');
     list.innerHTML = display.map(d=>`
       <label class="vote-item">
         <input type="radio" name="voteChoice" value="${d.key}" ${myVote===d.key?'checked':''} ${d.dead?'disabled':''}/>
@@ -368,10 +356,9 @@ $('castVoteBtn').onclick = async ()=>{
   const stateSnap = await db.ref(`rooms/${room}/state`).get();
   const state = stateSnap.exists()? stateSnap.val() : {};
   if (!state.voting?.open){ alert('Voting is not open.'); return; }
-  if (state.voting?.candidates && state.voting.candidates[myUid]){
-    alert('You are nominated and cannot vote this round.');
-    return;
-  }
+
+  // Note: nominated players ARE allowed to vote now.
+
   const choice = document.querySelector('input[name="voteChoice"]:checked');
   if (!choice){ alert('Pick a candidate.'); return; }
   await db.ref(`rooms/${room}/state/voting/votes/${myUid}`).set(choice.value);

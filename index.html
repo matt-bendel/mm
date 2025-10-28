@@ -10,7 +10,7 @@
 <header>
   <div class="title">Moonlit Bandanas</div>
   <div class="subtitle">Join • Your Character • Live Play</div>
-  <div class="navlinks"><a href="./create.html">Create</a> · <a href="./admin.html">Admin</a></div>
+  <div class="navlinks" id="topLinks"><a href="./create.html">Create</a> · <a href="./admin.html">Admin</a></div>
 </header>
 
 <div class="wrap">
@@ -45,16 +45,24 @@
       <div class="divider"></div>
 
       <div class="card" id="charSummaryBox">
-        <h3 class="kicker">Your Character</h3>
+        <h3 class="kicker" id="charHeader">Your Character</h3>
         <div id="charSummaryText" class="muted">—</div>
         <div id="roleDetailsBox" style="margin-top:10px"></div>
       </div>
 
+      <!-- Revealed clues are visible in both waiting & live (unless dead) -->
+      <div class="card" id="cluesBlock">
+        <h3 class="kicker">Revealed Clues</h3>
+        <div id="cluesList" class="grid" style="gap:14px"></div>
+      </div>
+
+      <!-- Waiting state -->
       <div id="waitingState" class="card">
         <h3 class="kicker">Waiting for Host to Start</h3>
         <div class="muted">You’ll see objectives, notes, and Mob Justice once the game begins.</div>
       </div>
 
+      <!-- Live game block -->
       <div id="liveGameBlock" hidden>
         <div class="grid grid-2">
           <div>
@@ -104,9 +112,13 @@
 MB.initFirebase();
 const db = MB.getDB();
 const {$, setCookie, getCookie, uid, verifyRoomPassword, claimCharacter,
-       getState, renderRoleDetails, bindModal} = MB;
+       renderRoleDetails, bindModal} = MB;
 const {popup} = bindModal('closeModalBtn');
 
+// Helper: base character name (strip " — biography")
+function baseCharName(s){ return (s||'').split(' — ')[0].trim(); }
+
+// Prefill from cookies
 (function(){
   const r = getCookie('mb_room'), n = getCookie('mb_name');
   if (r) $('joinRoom').value = r;
@@ -122,6 +134,11 @@ function saveLocal(room,name,charId,charName){
   setCookie('mb_name', name, 30);
 }
 
+function hideTopLinksAfterJoin(joined){
+  const nav = $('topLinks');
+  if (nav) nav.hidden = !!joined;
+}
+
 $('assignBtn').onclick = async ()=>{
   const room = ($('joinRoom').value||'').trim().toUpperCase();
   const pass = ($('joinPass').value||'').trim();
@@ -135,6 +152,7 @@ $('assignBtn').onclick = async ()=>{
     status.textContent='Assigned.';
     $('panel-join').hidden = true;
     $('panel-active').hidden = false;
+    hideTopLinksAfterJoin(true);
     await refreshActive();
   }catch(e){ status.textContent = 'Error: '+e.message; }
 };
@@ -157,6 +175,7 @@ $('revealMineBtn').onclick = async ()=>{
     saveLocal(room, name, charId, charName);
     $('panel-join').hidden = true;
     $('panel-active').hidden = false;
+    hideTopLinksAfterJoin(true);
     await refreshActive();
   }catch(e){ status.textContent = 'Error: '+e.message; }
 };
@@ -176,7 +195,10 @@ async function refreshActive(){
   const charId = localStorage.getItem('mb_charId') || '';
   const charName = localStorage.getItem('mb_charName') || '';
 
-  if (!charId){
+  const joined = !!charId;
+  hideTopLinksAfterJoin(joined);
+
+  if (!joined){
     $('panel-join').hidden = false;
     $('panel-active').hidden = true;
     return;
@@ -189,16 +211,18 @@ async function refreshActive(){
   $('activeNamePill').textContent = `Player: ${name||'—'}`;
 
   const myUid = uid(room, name);
-  const [userSnap, stateSnap, charsSnap, usersSnap] = await Promise.all([
+  const [userSnap, stateSnap, charsSnap, usersSnap, cluesSnap] = await Promise.all([
     db.ref(`rooms/${room}/users/${myUid}`).get(),
     db.ref(`rooms/${room}/state`).get(),
     db.ref(`rooms/${room}/characters`).get(),
-    db.ref(`rooms/${room}/users`).get()
+    db.ref(`rooms/${room}/users`).get(),
+    db.ref(`rooms/${room}/clues`).get()
   ]);
   const state = stateSnap.exists()? stateSnap.val(): {gameStarted:false, round:1, voting:{}};
   const voting = state.voting || {};
   const chars = charsSnap.exists()? charsSnap.val(): {};
   const users = usersSnap.exists()? usersSnap.val(): {};
+  const clues = cluesSnap.exists()? cluesSnap.val(): {};
 
   $('roundPill').textContent = `Round: ${state.round||1}`;
   $('voteStatusPill').textContent = `Vote: ${voting.open ? 'OPEN' : (voting.closed ? 'CLOSED' : '—')}`;
@@ -209,21 +233,40 @@ async function refreshActive(){
     $('roleDetailsBox').innerHTML='';
     $('waitingState').hidden=false;
     $('liveGameBlock').hidden=true;
+    await renderClues(clues); // still show revealed clues, even if user doc missing
     return;
   }
+
   const me = userSnap.val();
   const charRec = me.charId && chars[me.charId] ? chars[me.charId] : null;
-  const charLine = charRec ? charRec.name : (charName||'—');
+  const charLine = baseCharName(charRec ? charRec.name : (charName||'—'));
+
+  // Dead check: if dead, mark header and hide everything below
+  const isDead = !!(me.dead || (me.charId && chars[me.charId]?.dead));
+  $('charHeader').textContent = `Your Character${isDead ? ' (Dead)' : ''}`;
   $('charSummaryText').innerHTML = `<div><b>${charLine}</b></div>`;
   $('roleDetailsBox').innerHTML = MB.renderRoleDetails(me, users, chars);
 
+  if (isDead){
+    // Hide everything below the character card
+    $('waitingState').hidden = true;
+    $('liveGameBlock').hidden = true;
+    $('cluesBlock').hidden = true;
+    return;
+  }else{
+    // Show clues (revealed) always if alive
+    $('cluesBlock').hidden = false;
+    await renderClues(clues);
+  }
+
   if (!state.gameStarted){
-    $('waitingState').hidden=false;
+    $('waitingState').hidden=true; // we still show clues; hide objectives/vote
     $('liveGameBlock').hidden=true;
   }else{
     $('waitingState').hidden=true;
     $('liveGameBlock').hidden=false;
 
+    // Show up to current round tasks
     const toShow = Math.min(me.tasks?.length||0, state.round||1);
     const tasks = (me.tasks||[]).slice(0, toShow);
     $('todoList').innerHTML = tasks.map((t,i)=>`
@@ -239,38 +282,66 @@ async function refreshActive(){
       });
     });
 
-    const notesKey = `mb_notes_${room}_${name}`;
-    $('notesBox').value = localStorage.getItem(notesKey)||'';
+    // Notes load
+    $('notesBox').value = localStorage.getItem(`mb_notes_${room}_${name}`)||'';
 
-    await renderPlayerVoting(room, myUid, state);
+    // Voting
+    await renderPlayerVoting(room, myUid, state, users, chars);
   }
 }
 
-async function renderPlayerVoting(room, uidVal, state){
+async function renderClues(clues){
+  const box = $('cluesList'); box.innerHTML='';
+  const revealed = Object.entries(clues||{}).filter(([id,c])=> c && c.revealed);
+  if (!revealed.length){ box.innerHTML = '<div class="muted">No clues revealed yet.</div>'; return; }
+  revealed.forEach(([id,c])=>{
+    const el = document.createElement('article');
+    el.className = 'parchment';
+    el.innerHTML = `<div class="tag">Clue ${id}</div><h4>${c.title||'(untitled)'}</h4><div>${c.body||''}</div>`;
+    box.appendChild(el);
+  });
+}
+
+async function renderPlayerVoting(room, uidVal, state, users, chars){
   const help = $('voteHelp'), list = $('candidateList'), tallyBox = $('tallyBox'), btn = $('castVoteBtn');
   const voting = state.voting || {};
   MB.updateCountdownPill($('voteCountdownPill'), voting.endsAt);
+
   if (!voting.open && !voting.closed){
     help.textContent='Waiting for Admin to open voting…';
     list.innerHTML=''; tallyBox.innerHTML=''; btn.disabled=true; return;
   }
-  const [usersSnap, charsSnap] = await Promise.all([
-    db.ref(`rooms/${room}/users`).get(),
-    db.ref(`rooms/${room}/characters`).get()
-  ]);
-  const users = usersSnap.exists()? usersSnap.val(): {};
-  const chars = charsSnap.exists()? charsSnap.val(): {};
+
   const candidates = voting.candidates || {};
   const votes = voting.votes || {};
   const items = Object.keys(candidates);
+  const nominated = !!candidates[uidVal]; // nominated players cannot vote
+
+  // Build candidate display (Real Name + Character Name only)
   const display = items.map(k=>{
-    const u = users[k]; const charName = u && u.charId && chars[u.charId] ? chars[u.charId].name : '';
+    const u = users[k];
+    let charName = '';
+    if (u && u.charId && chars[u.charId]) charName = baseCharName(chars[u.charId].name);
     const dead = u?.dead || (u?.charId && chars[u.charId]?.dead);
-    return {key:k, label: u ? `${u.name}${charName? ' — '+charName:''}${dead?' (dead)':''}` : k, dead: !!dead};
+    const label = u ? `${u.name}${charName? ' — '+charName:''}${dead?' (dead)':''}` : k;
+    return {key:k, label, dead: !!dead};
   });
+
   const myVote = votes[uidVal] || '';
 
   if (voting.open){
+    if (nominated){
+      help.textContent='Voting is OPEN. You are a current candidate and cannot vote.';
+      list.innerHTML = display.map(d=>`
+        <label class="vote-item">
+          <input type="radio" name="voteChoice" value="${d.key}" disabled/>
+          <div>${d.label}</div>
+        </label>`).join('') || '<div class="muted">No candidates yet.</div>';
+      btn.disabled = true;
+      tallyBox.innerHTML='<span class="muted">Tally will appear when voting closes.</span>';
+      return;
+    }
+
     help.textContent='Voting is OPEN. Choose one candidate:';
     list.innerHTML = display.map(d=>`
       <label class="vote-item">
@@ -283,17 +354,24 @@ async function renderPlayerVoting(room, uidVal, state){
     help.textContent='Voting is CLOSED. Final tally:';
     list.innerHTML = display.map(d=>`<div class="vote-item"><div>${d.label}</div></div>`).join('') || '<div class="muted">No candidates.</div>';
     btn.disabled=true;
+
     const tally = MB.computeTally(users, chars, votes);
     const tallyLines = display.map(d=>`• ${d.label}: <b class="tally">${tally[d.key]||0}</b>`).join('<br>');
     tallyBox.innerHTML = tallyLines || 'No votes.';
   }
 }
+
 $('castVoteBtn').onclick = async ()=>{
   const room = localStorage.getItem('mb_room'); const name = localStorage.getItem('mb_name');
   if (!room || !name) return;
   const myUid = MB.uid(room,name);
-  const state = await MB.getState(room);
+  const stateSnap = await db.ref(`rooms/${room}/state`).get();
+  const state = stateSnap.exists()? stateSnap.val() : {};
   if (!state.voting?.open){ alert('Voting is not open.'); return; }
+  if (state.voting?.candidates && state.voting.candidates[myUid]){
+    alert('You are nominated and cannot vote this round.');
+    return;
+  }
   const choice = document.querySelector('input[name="voteChoice"]:checked');
   if (!choice){ alert('Pick a candidate.'); return; }
   await db.ref(`rooms/${room}/state/voting/votes/${myUid}`).set(choice.value);
@@ -301,6 +379,7 @@ $('castVoteBtn').onclick = async ()=>{
   await refreshActive();
 };
 
+// Initial render
 document.addEventListener('DOMContentLoaded', ()=> refreshActive());
 </script>
 </body>

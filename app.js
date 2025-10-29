@@ -272,37 +272,47 @@ const MB = (function(){
         default: return null;
       }
     }
-    function aliveStatus(u, chars){ const dead = u?.dead || (u?.charId && chars[u.charId]?.dead); return dead ? ' (dead)' : ' (alive)'; }
-    function renderRoleDetails(me, users, chars){
+    function userIsDead(u, chars){
+      return !!(u?.dead || (u?.charId && chars && chars[u.charId]?.dead));
+    }
+    function aliveStatus(u, chars){
+      return userIsDead(u, chars) ? ' (dead)' : ' (alive)';
+    }
+    function renderRoleDetails(me, users, chars, state){
       if (!me?.specialRole) return '';
-      const base = `<div class="card" style="margin-top:8px">
-        <div><b>Role:</b> ${me.specialRole}</div>
-        <div class="muted" style="margin-top:6px">${roleDetailsText(me.specialRole)||''}</div>`;
+      const originalElderUid = state?.originalElderUid || null;
+      const ascendedElderUid = state?.ascendedElderUid || null;
+      let body = `<div><b>Role:</b> ${me.specialRole}</div>`;
+      body += `<div class="muted" style="margin-top:6px">${roleDetailsText(me.specialRole)||''}</div>`;
       if (me.specialRole === 'Elder Vampire' || me.specialRole === 'Lesser Vampire'){
-        let elder=null, lesser=null, thrall=null;
+        let elderList = [], lesser=null, thrall=null;
         for (const [uid,u] of Object.entries(users||{})){
-          if (u.specialRole === 'Elder Vampire') elder = {uid,u};
+          if (u.specialRole === 'Elder Vampire') elderList.push({uid,u});
           if (u.specialRole === 'Lesser Vampire') lesser = {uid,u};
           if (u.specialRole === 'Thrall') thrall = {uid,u};
         }
         const lines=[];
-        if (elder) lines.push(`Elder Vampire: <b>${elder.u.name}</b>${aliveStatus(elder.u, chars)}`);
+        elderList.forEach(({uid,u})=>{
+          const tag = uid === originalElderUid ? 'Elder Vampire' : (uid === ascendedElderUid ? 'Ascended Elder' : 'Elder Vampire');
+          lines.push(`${tag}: <b>${u.name}</b>${aliveStatus(u, chars)}`);
+        });
         if (lesser) lines.push(`Lesser Vampire: <b>${lesser.u.name}</b>${aliveStatus(lesser.u, chars)}`);
         if (thrall) lines.push(`Thrall: <b>${thrall.u.name}</b>${aliveStatus(thrall.u, chars)}`);
-        return base + (lines.length? `<div style="margin-top:10px">${lines.map(x=>`- ${x}`).join('<br>')}</div>`:'') + `</div>`;
+        if (lines.length) body += `<div style="margin-top:10px">${lines.map(x=>'- ' + x).join('<br>')}</div>`;
+        return `<div class="role-summary">${body}</div>`;
       }
       if (me.specialRole === 'Thrall'){
-        let elder=null;
-        for (const [uid,u] of Object.entries(users||{})){
-          if (u.specialRole === 'Elder Vampire') elder = {uid,u};
-        }
-        const freed = elder ? (elder.u.dead || (elder.u.charId && chars[elder.u.charId]?.dead)) : false;
-        const line = elder ? `Elder Vampire: <b>${elder.u.name}</b>${aliveStatus(elder.u, chars)}${freed?' - you are <b>SET FREE</b>.':''}` : 'Elder Vampire: (unknown)';
-        return base + `<div style="margin-top:10px">- ${line}</div></div>`;
+        const elderUid = originalElderUid || Object.entries(users||{}).find(([uid,u])=> u.specialRole === 'Elder Vampire')?.[0];
+        const elder = elderUid ? users[elderUid] : null;
+        const freed = elder ? userIsDead(elder, chars) : false;
+        const line = elder ? `Elder Vampire: <b>${elder.name}</b>${aliveStatus(elder, chars)}${freed?' - you are <b>SET FREE</b>.':''}` : 'Elder Vampire: (unknown)';
+        body += `<div style="margin-top:10px">- ${line}</div>`;
+        return `<div class="role-summary">${body}</div>`;
       }
-      return base + `</div>`;
+      return `<div class="role-summary">${body}</div>`;
     }
 
+    // Voting helpers
     // Voting helpers
     function updateCountdownPill(pillEl, endsAt){
       if (!pillEl) return;
@@ -313,7 +323,7 @@ const MB = (function(){
         const ms = Math.max(0, (endsAt||0) - Date.now());
         const m = Math.floor(ms/60000);
         const s = Math.floor((ms%60000)/1000).toString().padStart(2,'0');
-        pillEl.textContent = endsAt ? `⏳ ${m}:${s}` : '⏳ —';
+        pillEl.textContent = endsAt ? `Timer: ${m}:${s}` : 'Timer: --';
         if (ms<=0 && pillEl.__mbTimer){
           clearInterval(pillEl.__mbTimer);
           pillEl.__mbTimer = null;
@@ -330,10 +340,66 @@ const MB = (function(){
       const tally = {};
       Object.entries(votes||{}).forEach(([voter,choice])=>{
         const u = users[voter];
-        const aliveVoter = u && !u.dead && !(u.charId && chars[u.charId]?.dead);
+        const aliveVoter = u && !userIsDead(u, chars);
         if (aliveVoter) tally[choice] = (tally[choice]||0)+1;
       });
       return tally;
+    }
+    function elderTargetsArray(state){
+      const targets = state?.elderTargets || {};
+      const rounds = ['1','2','3','4'];
+      return rounds.map((r,ix)=>{
+        const rec = targets[r] || targets[ix+1] || null;
+        if (!rec) return {round: ix+1, uid:null};
+        return {round: ix+1, uid: rec.uid || null};
+      });
+    }
+    async function ensureElderPromotion(room, context){
+      const users = context.users || {};
+      const chars = context.chars || {};
+      const state = context.state || {};
+      const updates = {};
+      const elders = [];
+      let lesserEntry = null;
+      let thrallEntry = null;
+      for (const [uid,u] of Object.entries(users)){
+        if (u.specialRole === 'Elder Vampire') elders.push([uid,u]);
+        if (u.specialRole === 'Lesser Vampire') lesserEntry = [uid,u];
+        if (u.specialRole === 'Thrall') thrallEntry = [uid,u];
+      }
+      if (!state.originalElderUid && elders.length){
+        updates[`rooms/${room}/state/originalElderUid`] = elders[0][0];
+        state.originalElderUid = elders[0][0];
+      }
+      const elderAlive = elders.some(([uid,u])=> !userIsDead(u, chars));
+      if (!elderAlive && lesserEntry){
+        const [lesserUid, lesserUser] = lesserEntry;
+        if (!userIsDead(lesserUser, chars)){
+          if (lesserUser.specialRole !== 'Elder Vampire'){
+            updates[`rooms/${room}/users/${lesserUid}/specialRole`] = 'Elder Vampire';
+            users[lesserUid] = {...lesserUser, specialRole:'Elder Vampire'};
+          }
+          if (state.ascendedElderUid !== lesserUid){
+            updates[`rooms/${room}/state/ascendedElderUid`] = lesserUid;
+            state.ascendedElderUid = lesserUid;
+          }
+        }
+      }
+      if (thrallEntry && state.originalElderUid){
+        // Ensure thrall freed flag stored for reuse (optional for UI)
+        const [thrallUid] = thrallEntry;
+        const elder = users[state.originalElderUid];
+        const freed = elder ? userIsDead(elder, chars) : false;
+        if (!!state.thrallFreed !== !!freed){
+          updates[`rooms/${room}/state/thrallFreed`] = !!freed;
+          state.thrallFreed = !!freed;
+        }
+      }
+      if (Object.keys(updates).length){
+        await getDB().ref().update(updates);
+        return true;
+      }
+      return false;
     }
   
     async function closeVotingAndResolve(room, popup){
@@ -388,10 +454,12 @@ const MB = (function(){
       const users = usersSnap.val();
       const chars = charsSnap.exists()? charsSnap.val(): {};
       const state = stateSnap.exists()? stateSnap.val(): {round:1};
+      await ensureElderPromotion(room, {users, chars, state});
   
-      const aliveUsers = Object.values(users).filter(u=> !(u.dead || (u.charId && chars[u.charId]?.dead)));
-      const aliveVamps = aliveUsers.filter(u=> ['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
-      const aliveNonVamps = aliveUsers.filter(u=> !['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
+      const allUsers = Object.entries(users);
+      const aliveUsers = allUsers.filter(([uid,u])=> !userIsDead(u, chars));
+      const aliveVamps = aliveUsers.filter(([uid,u])=> ['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
+      const aliveNonVamps = aliveUsers.filter(([uid,u])=> !['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
   
       if (aliveVamps.length === 0){
         const html = `<div>The Elder and Lesser vampires are dead. The village prevails!</div>`;
@@ -399,10 +467,32 @@ const MB = (function(){
         await publishPopup(room, {title:'Village Victory', html});
         return;
       }
-      if (aliveVamps.length >= aliveNonVamps.length || (state.round>4 && aliveVamps.length>0)){
+      if (aliveVamps.length >= aliveNonVamps.length){
         const html = `<div>The night belongs to fangs and shadow.</div>`;
         if (popup) popup('Vampires Triumph', html);
         await publishPopup(room, {title:'Vampires Triumph', html});
+        return;
+      }
+      if (state.round >= 4){
+        const targetSlots = elderTargetsArray(state);
+        const assignedTargets = targetSlots.filter(t=> t.uid);
+        const uniqueTargets = [...new Set(assignedTargets.map(t=>t.uid))];
+        const allAssigned = targetSlots.length === 4 && targetSlots.every(t=>t.uid);
+        const allDead = uniqueTargets.length === assignedTargets.length && uniqueTargets.every(uid=>{
+          const u = users[uid];
+          return u ? userIsDead(u, chars) : false;
+        });
+        if (allAssigned && allDead && aliveVamps.length > 0){
+          const html = `<div>The vampire plots succeeded—the marked victims all fell before the final dawn.</div>`;
+          if (popup) popup('Vampires Triumph', html);
+          await publishPopup(room, {title:'Vampires Triumph', html});
+          return;
+        }
+        if (allAssigned && !allDead && state.round >= 4){
+          const html = `<div>Dawn breaks and the remaining villagers stand firm. The vampires failed to claim every marked soul.</div>`;
+          if (popup) popup('Village Victory', html);
+          await publishPopup(room, {title:'Village Victory', html});
+        }
       }
     }
   
@@ -432,6 +522,7 @@ const MB = (function(){
       roleDetailsText, renderRoleDetails, updateCountdownPill,
       computeTally, closeVotingAndResolve, checkWinConditions,
       parseCSV, bindModal, publishPopup,
+      elderTargetsArray, userIsDead,
       storage,
       isDebug: ()=>DEBUG_MODE
     };

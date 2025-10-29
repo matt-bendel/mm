@@ -33,17 +33,36 @@
   .divider{height:1px; background:#222226; margin:14px 0}
   .card{background:linear-gradient(180deg,#121215,#0f0f12); border:1px solid #242428; border-radius:16px; padding:14px}
   .kicker{font-family:Cinzel,serif; font-weight:700; letter-spacing:.4px}
-  
+  .dead-name{color:#ff6b6b; text-decoration:line-through}
+  .role-summary{display:grid; gap:8px; font-size:14px}
+  .role-summary > div:first-child{font-weight:600}
+
   /* Vote list */
   .vote-list{display:grid; gap:8px}
-  .vote-item{display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid #242428; border-radius:10px; background:#0f0f13}
+  .vote-item{display:flex; align-items:flex-start; gap:10px; padding:8px 10px; border:1px solid #242428; border-radius:10px; background:#0f0f13}
+  .vote-item input[type="radio"]{margin-top:4px}
+  .vote-label{flex:1; text-align:left}
   .tally{font-variant-numeric:tabular-nums}
-  
+
   /* Checklist */
   .todo{display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid #242428; border-radius:12px; margin-top:8px; background:#101014; justify-content:flex-start}
-  .todo input[type="checkbox"]{transform:scale(1.2); margin-top:3px}
+  .todo input[type="checkbox"]{transform:scale(1.2); margin-top:2px}
+  .todo span{flex:1; text-align:left}
   .todo.done{opacity:.7}
-  
+  .todo.done span{text-decoration:line-through}
+
+  /* Tabs */
+  .tab-shell{margin-top:12px}
+  .tab-bar{display:flex; flex-wrap:wrap; gap:8px}
+  .tab-btn{background:#15151a; border:1px solid #27272f; color:#d6d6dc; padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600}
+  .tab-btn.active{background:linear-gradient(180deg,var(--accent2),var(--accent)); border-color:var(--accent); color:#fff; box-shadow:0 8px 22px rgba(224,30,55,.25)}
+  .tab-panels{margin-top:12px; display:grid; gap:12px}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .target-grid{display:grid; gap:12px; margin-top:10px}
+  .target-row{border:1px solid #242428; border-radius:12px; padding:12px; background:#101014}
+  .target-row label{font-weight:600}
+
   /* Burned parchment for clues */
   .parchment{
     color:#fdf8f2;

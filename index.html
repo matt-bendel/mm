@@ -33,11 +33,11 @@
     <div class="grid">
       <div class="row" style="justify-content:space-between">
         <div class="row" style="gap:12px">
-          <span class="pill" id="activeRoomPill">Room: —</span>
-          <span class="pill" id="activeNamePill">Player: —</span>
-          <span class="pill" id="roundPill">Round: —</span>
-          <span class="pill" id="voteStatusPill">Vote: —</span>
-          <span class="pill" id="voteCountdownPill">⏳ —</span>
+          <span class="pill" id="activeRoomPill">Room: -</span>
+          <span class="pill" id="activeNamePill">Player: -</span>
+          <span class="pill" id="roundPill">Round: -</span>
+          <span class="pill" id="voteStatusPill">Vote: -</span>
+          <span class="pill" id="voteCountdownPill">Timer: --</span>
         </div>
         <button class="btn secondary" id="refreshActiveBtn">Refresh</button>
       </div>
@@ -46,55 +46,71 @@
 
       <div class="card" id="charSummaryBox">
         <h3 class="kicker" id="charHeader">Your Character</h3>
-        <div id="charSummaryText" class="muted">—</div>
-        <div id="roleDetailsBox" style="margin-top:10px"></div>
+        <div id="charSummaryText" class="muted">-</div>
       </div>
 
-      <!-- Revealed clues are visible in both waiting & live (unless dead) -->
-      <div class="card" id="cluesBlock">
-        <h3 class="kicker">Revealed Clues</h3>
-        <div id="cluesList" class="grid" style="gap:14px"></div>
-      </div>
-
-      <!-- Waiting state -->
-      <div id="waitingState" class="card">
-        <h3 class="kicker">Waiting for Host to Start</h3>
-        <div class="muted">You’ll see objectives, notes, and Mob Justice once the game begins.</div>
-      </div>
-
-      <!-- Live game block -->
-      <div id="liveGameBlock" hidden>
-        <div class="grid grid-2">
-          <div>
-            <h3 class="kicker">Your Objectives</h3>
-            <div id="todoList" class="muted">—</div>
-          </div>
-          <div>
-            <h3 class="kicker">Notes (private)</h3>
-            <textarea id="notesBox" placeholder="Jot suspects, alibis, or reminders… (saved on this device)"></textarea>
-            <div class="row" style="margin-top:8px">
-              <button class="btn secondary" id="saveNotesBtn">Save Notes</button>
-              <span class="muted">Notes are not uploaded.</span>
-            </div>
-          </div>
+      <div class="tab-shell">
+        <div class="tab-bar" id="playerTabBar">
+          <button class="tab-btn active" data-target="tab-objectives">Objectives & Notes</button>
+          <button class="tab-btn" data-target="tab-clues">Clues</button>
+          <button class="tab-btn" data-target="tab-justice">Mob Justice</button>
+          <button class="tab-btn" id="roleTabBtn" data-target="tab-role" hidden>Role</button>
         </div>
-
-        <div class="divider"></div>
-
-        <div class="card">
-          <h3 class="kicker">Mob Justice</h3>
-          <div id="voteBlock">
-            <div class="muted" id="voteHelp">Waiting for Admin to open voting…</div>
-            <div id="candidateList" class="vote-list" style="margin-top:8px"></div>
-            <div class="row" style="margin-top:10px">
-              <button class="btn" id="castVoteBtn">Cast / Update Vote</button>
-              <span class="muted">One vote per round; you can change it until voting closes.</span>
+        <div class="tab-panels">
+          <section id="tab-objectives" class="tab-panel active">
+            <div id="waitingState" class="card">
+              <h3 class="kicker">Waiting for Host to Start</h3>
+              <div class="muted">You'll see objectives, notes, and Mob Justice once the game begins.</div>
             </div>
-            <div class="divider"></div>
-            <div id="tallyBox" class="muted"></div>
-          </div>
+            <div id="liveObjectiveBlock" hidden>
+              <div class="card">
+                <h3 class="kicker">Your Objectives</h3>
+                <div id="todoList" class="muted">-</div>
+              </div>
+              <div class="card" id="elderTargetsBox" hidden>
+                <h3 class="kicker">Marked Targets</h3>
+                <div id="elderTargetsList" class="muted">No targets assigned.</div>
+              </div>
+              <div class="card">
+                <h3 class="kicker">Notes (private)</h3>
+                <textarea id="notesBox" placeholder="Jot suspects, alibis, or reminders (saved on this device)"></textarea>
+                <div class="row" style="margin-top:8px">
+                  <button class="btn secondary" id="saveNotesBtn">Save Notes</button>
+                  <span class="muted">Notes are not uploaded.</span>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section id="tab-clues" class="tab-panel">
+            <div class="card">
+              <h3 class="kicker">Revealed Clues</h3>
+              <div id="cluesList" class="grid" style="gap:14px"></div>
+            </div>
+          </section>
+          <section id="tab-justice" class="tab-panel">
+            <div class="card">
+              <h3 class="kicker">Mob Justice</h3>
+              <div id="voteBlock">
+                <div class="muted" id="voteHelp">Waiting for Admin to open voting...</div>
+                <div id="candidateList" class="vote-list" style="margin-top:8px"></div>
+                <div class="row" style="margin-top:10px">
+                  <button class="btn" id="castVoteBtn">Cast / Update Vote</button>
+                  <span class="muted">One vote per round; you can change it until voting closes.</span>
+                </div>
+                <div class="divider"></div>
+                <div id="tallyBox" class="muted"></div>
+              </div>
+            </div>
+          </section>
+          <section id="tab-role" class="tab-panel">
+            <div class="card">
+              <h3 class="kicker">Role Details</h3>
+              <div id="roleDetailsBox" class="muted">No special role assigned.</div>
+            </div>
+          </section>
         </div>
       </div>
+
     </div>
   </section>
 </div>
@@ -112,7 +128,7 @@
 MB.initFirebase();
 const db = MB.getDB();
 const {$, setCookie, getCookie, uid, verifyRoomPassword, claimCharacter,
-       renderRoleDetails, bindModal, storage} = MB;
+       renderRoleDetails, bindModal, storage, elderTargetsArray, userIsDead} = MB;
 const store = storage || {get:()=>"", set:()=>{}, remove:()=>{}, clear:()=>{}};
 const {popup} = bindModal('closeModalBtn');
 
@@ -151,6 +167,35 @@ function hideTopLinksAfterJoin(joined){
   }
 }
 
+const tabState = { current: 'tab-objectives' };
+const playerTabBar = $('playerTabBar');
+const tabButtons = playerTabBar ? [...playerTabBar.querySelectorAll('.tab-btn')] : [];
+const tabPanels = ()=> [...document.querySelectorAll('.tab-panel')];
+function activateTab(targetId){
+  tabState.current = targetId;
+  tabButtons.forEach(btn=>{
+    const target = btn.getAttribute('data-target');
+    const active = target === targetId;
+    btn.classList.toggle('active', active);
+    if (active) btn.setAttribute('aria-selected','true');
+    else btn.removeAttribute('aria-selected');
+  });
+  tabPanels().forEach(panel=>{
+    const active = panel.id === targetId;
+    panel.classList.toggle('active', active);
+    panel.hidden = !active;
+  });
+}
+if (playerTabBar){
+  playerTabBar.addEventListener('click', (evt)=>{
+    const btn = evt.target.closest('.tab-btn');
+    if (!btn || btn.hasAttribute('hidden')) return;
+    const target = btn.getAttribute('data-target');
+    if (target) activateTab(target);
+  });
+  activateTab(tabState.current);
+}
+
 const activeSession = {
   room: '',
   name: '',
@@ -161,7 +206,8 @@ const activeSession = {
   subscribedUid: '',
   listeners: [],
   data: { state: null, users: null, characters: null, clues: null },
-  lastPopupTs: 0
+  lastPopupTs: 0,
+  canVote: false
 };
 
 function resetActiveData(){
@@ -278,16 +324,20 @@ async function refreshActive(){
   activeSession.charName = charName;
   activeSession.uid = joined && room && name ? uid(room, name) : '';
   activeSession.lastPopupTs = joined && room ? Number(store.get(`mb_last_popup_${room}`)||0) : 0;
+  activeSession.canVote = false;
 
   if (!joined){
     detachActiveListeners();
     $('panel-join').hidden = false;
     $('panel-active').hidden = true;
+    tabState.current = 'tab-objectives';
+    activateTab(tabState.current);
     return;
   }
 
   $('panel-join').hidden = true;
   $('panel-active').hidden = false;
+  activateTab(tabState.current);
 
   ensureActiveSubscriptions(room, activeSession.uid);
   await renderActiveWithData();
@@ -304,7 +354,7 @@ async function renderActiveWithData(){
   const clues = activeSession.data.clues || {};
   const me = users ? users[myUid] : null;
   const charRec = (me && me.charId && chars[me.charId]) || (charId && chars[charId]) || null;
-  const charLine = baseCharName(charRec ? charRec.name : (charName||'—'));
+  const charLine = baseCharName(charRec ? charRec.name : (charName||'-'));
   const bio = (charRec && (charRec.bio || charRec.desc)) || '';
 
   const popupInfo = state.lastPopup;
@@ -314,53 +364,100 @@ async function renderActiveWithData(){
     if (room) store.set(`mb_last_popup_${room}`, String(popupInfo.ts));
   }
 
-  $('activeRoomPill').textContent = `Room: ${room||'—'}`;
-  $('activeNamePill').textContent = `Player: ${name||'—'}`;
+  $('activeRoomPill').textContent = `Room: ${room||'-'}`;
+  $('activeNamePill').textContent = `Player: ${name||'-'}`;
   $('roundPill').textContent = `Round: ${state.round||1}`;
-  $('voteStatusPill').textContent = `Vote: ${voting.open ? 'OPEN' : (voting.closed ? 'CLOSED' : '—')}`;
+  $('voteStatusPill').textContent = `Vote: ${voting.open ? 'OPEN' : (voting.closed ? 'CLOSED' : '-')}`;
   MB.updateCountdownPill($('voteCountdownPill'), voting.endsAt);
 
+  const roleTabBtn = $('roleTabBtn');
+  const roleDetailsBox = $('roleDetailsBox');
+  const waitingCard = $('waitingState');
+  const waitingBody = waitingCard ? waitingCard.querySelector('.muted') : null;
+  const liveObjectiveBlock = $('liveObjectiveBlock');
+  const notesBox = $('notesBox');
+  const elderTargetsBox = $('elderTargetsBox');
+  const elderTargetsList = $('elderTargetsList');
+  const tabShell = document.querySelector('.tab-shell');
+
+  const isDead = me ? userIsDead(me, chars) : false;
+  $('charHeader').textContent = me ? `Your Character${isDead ? ' (Dead)' : ''}` : 'Your Character';
+  const nameMarkup = `<b>${isDead ? `<span class="dead-name">${charLine}</span>` : charLine}</b>`;
+  const summaryInner = me ? `<div>${nameMarkup}</div>${bio ? `<div class="muted" style="margin-top:6px">${bio}</div>` : ''}`
+                          : `<div><b>${charLine}</b></div><div class="muted">Waiting for assignment sync...</div>`;
+  $('charSummaryText').innerHTML = summaryInner;
+
   if (!me){
-    $('charHeader').textContent = 'Your Character';
-    const waitingText = bio ? `<div class="muted">${bio}</div>` : '<div class="muted">Waiting for assignment sync...</div>';
-    $('charSummaryText').innerHTML = `<div><b>${charLine}</b></div>${waitingText}`;
-    $('roleDetailsBox').innerHTML = '';
-    $('waitingState').hidden=false;
-    $('liveGameBlock').hidden=true;
+    if (roleDetailsBox) roleDetailsBox.innerHTML = 'No special role assigned.';
+    if (roleTabBtn){
+      roleTabBtn.hidden = true;
+      if (tabState.current === 'tab-role') activateTab('tab-objectives');
+    }
+    if (waitingCard){
+      waitingCard.hidden = false;
+      if (waitingBody) waitingBody.textContent = "Join a room to see live updates.";
+    }
+    if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
+    if (elderTargetsBox) elderTargetsBox.hidden = true;
+    if (tabShell) tabShell.hidden = true;
     renderClues(clues);
+    activeSession.canVote = false;
     return;
   }
 
-  const isDead = !!(me.dead || (me.charId && chars[me.charId]?.dead));
-  $('charHeader').textContent = `Your Character${isDead ? ' (Dead)' : ''}`;
-  $('charSummaryText').innerHTML = `<div><b>${charLine}</b></div>${bio ? `<div class="muted" style="margin-top:6px">${bio}</div>` : ''}`;
-  $('roleDetailsBox').innerHTML = MB.renderRoleDetails(me, users, chars);
-
-  if (isDead){
-    $('waitingState').hidden = true;
-    $('liveGameBlock').hidden = true;
-    $('cluesBlock').hidden = true;
-    return;
+  const roleMarkup = MB.renderRoleDetails(me, users, chars, state);
+  if (roleDetailsBox){
+    roleDetailsBox.innerHTML = roleMarkup || 'No special role assigned.';
+    roleDetailsBox.classList.toggle('muted', !roleMarkup);
+  }
+  if (roleTabBtn){
+    roleTabBtn.hidden = !roleMarkup;
+    if (roleTabBtn.hidden && tabState.current === 'tab-role') activateTab('tab-objectives');
   }
 
-  $('cluesBlock').hidden = false;
+  if (tabShell) tabShell.hidden = false;
   renderClues(clues);
 
-  if (!state.gameStarted){
-    $('waitingState').hidden=true;
-    $('liveGameBlock').hidden=true;
+  if (isDead){
+    activeSession.canVote = false;
+    if (tabShell){
+      tabShell.hidden = true;
+      if (tabState.current !== 'tab-objectives') activateTab('tab-objectives');
+    }
+    if (waitingCard){
+      waitingCard.hidden = false;
+      if (waitingBody) waitingBody.textContent = 'You have been eliminated. Observe as a ghost but you may not vote or complete objectives.';
+    }
+    if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
+    if (elderTargetsBox) elderTargetsBox.hidden = true;
+    $('todoList').innerHTML = '<div class="muted">Eliminated players cannot complete objectives.</div>';
     return;
   }
 
-  $('waitingState').hidden=true;
-  $('liveGameBlock').hidden=false;
+  const gameStarted = !!state.gameStarted;
+  if (!gameStarted){
+    activeSession.canVote = false;
+    if (waitingCard){
+      waitingCard.hidden = false;
+      if (waitingBody) waitingBody.textContent = "You'll see objectives, notes, and Mob Justice once the game begins.";
+    }
+    if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
+    if (elderTargetsBox) elderTargetsBox.hidden = true;
+    $('todoList').innerHTML = '<div class="muted">Objectives unlock when the host starts the round.</div>';
+    renderPlayerVoting(room, myUid, state, users, chars, activeSession.canVote, me);
+    return;
+  }
+
+  if (waitingCard) waitingCard.hidden = true;
+  if (liveObjectiveBlock) liveObjectiveBlock.hidden = false;
+  activeSession.canVote = true;
 
   const toShow = Math.min(me.tasks?.length||0, state.round||1);
   const tasks = (me.tasks||[]).slice(0, toShow);
   $('todoList').innerHTML = tasks.map((t,i)=>`
     <label class="todo ${t.done?'done':''}">
       <input type="checkbox" data-ix="${i}" ${t.done?'checked':''}/>
-      <div>${t.text}</div>
+      <span>${t.text}</span>
     </label>`).join('') || '<div class="muted">No tasks.</div>';
   [...$('todoList').querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
     cb.addEventListener('change', async (e)=>{
@@ -369,10 +466,31 @@ async function renderActiveWithData(){
     });
   });
 
-  $('notesBox').value = store.get(`mb_notes_${room}_${name}`)||'';
-  renderPlayerVoting(room, myUid, state, users, chars);
-}
+  if (notesBox) notesBox.value = store.get(`mb_notes_${room}_${name}`)||'';
+  renderPlayerVoting(room, myUid, state, users, chars, activeSession.canVote, me);
 
+  if (elderTargetsBox && elderTargetsList){
+    if (me.specialRole === 'Elder Vampire'){
+      const targets = elderTargetsArray(state);
+      const currentRound = state.round || 1;
+      const visible = targets.filter(t=> t.round <= currentRound);
+      const lines = visible.map(slot=>{
+        if (!slot.uid) return `<div class="muted">Round ${slot.round}: (awaiting target assignment)</div>`;
+        const target = users[slot.uid];
+        const dead = target ? userIsDead(target, chars) : false;
+        const targetName = target ? target.name : '(unknown)';
+        const charName = target && target.charId && chars[target.charId] ? baseCharName(chars[target.charId].name) : '';
+        const charLabel = charName ? `${dead ? `<span class="dead-name">${charName}</span>` : charName}${dead ? ' (dead)' : ' (alive)'}` : (dead ? '(dead)' : '(alive)');
+        const separator = charName ? ' - ' : ' ';
+        return `<div>Round ${slot.round}: <b>${targetName}</b>${separator}${charLabel}</div>`;
+      });
+      elderTargetsList.innerHTML = lines.length ? lines.join('') : '<div class="muted">Targets will appear as rounds advance.</div>';
+      elderTargetsBox.hidden = false;
+    }else{
+      elderTargetsBox.hidden = true;
+    }
+  }
+}
 function renderClues(clues){
   const box = $('cluesList'); box.innerHTML='';
   const revealed = Object.entries(clues||{}).filter(([id,c])=> c && c.revealed);
@@ -385,14 +503,76 @@ function renderClues(clues){
   });
 }
 
-function renderPlayerVoting(room, uidVal, state, users, chars){
+function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
   const help = $('voteHelp'), list = $('candidateList'), tallyBox = $('tallyBox'), btn = $('castVoteBtn');
   const voting = state.voting || {};
   MB.updateCountdownPill($('voteCountdownPill'), voting.endsAt);
 
   if (!voting.open && !voting.closed){
-    help.textContent='Waiting for Admin to open voting...';
+    help.textContent = canVote ? 'Waiting for Admin to open voting...' : 'You cannot vote in this round.';
     list.innerHTML=''; tallyBox.innerHTML=''; btn.disabled=true; return;
+  }
+
+  const candidates = voting.candidates || {};
+  const votes = {...(voting.votes || {})};
+  const items = Object.keys(candidates);
+
+  let myVote = votes[uidVal] || '';
+  let forbidUid = null;
+  if (me?.specialRole === 'Thrall' && state.originalElderUid){
+    const elder = users[state.originalElderUid];
+    if (elder && !userIsDead(elder, chars)){
+      forbidUid = state.originalElderUid;
+      if (myVote === forbidUid){
+        delete votes[uidVal];
+        myVote = '';
+        db.ref(`rooms/${room}/state/voting/votes/${uidVal}`).remove();
+      }
+    }
+  }
+
+  const display = items.map(k=>{
+    const u = users[k];
+    let charName = '';
+    if (u && u.charId && chars[u.charId]) charName = baseCharName(chars[u.charId].name);
+    const dead = u ? userIsDead(u, chars) : false;
+    const charPart = charName ? `${dead ? `<span class="dead-name">${charName}</span>` : charName}${dead ? ' (dead)' : ' (alive)'}` : (dead ? '(dead)' : '(alive)');
+    const label = u ? `${u.name}${charName ? ' - ' + charPart : ' ' + charPart}` : k;
+    const blocked = !!forbidUid && forbidUid === k;
+    return {key:k, label: blocked ? `${label} <span class="muted">(bound)</span>` : label, dead: !!dead, blocked};
+  });
+
+  const youAreCandidate = !!candidates[uidVal];
+
+  if (voting.open){
+    const baseHelp = 'Voting is OPEN. Choose one candidate.';
+    const extra = forbidUid ? ' (You may not vote for the Elder while bound.)' : '';
+    help.textContent = canVote ? baseHelp + (youAreCandidate ? ' (You are also a candidate.)' : '') + extra : 'Voting is OPEN, but you may not vote.';
+    list.innerHTML = display.map(d=>`
+      <label class="vote-item">
+        <input type="radio" name="voteChoice" value="${d.key}" ${myVote===d.key?'checked':''} ${(d.dead || !canVote || (forbidUid && d.blocked))?'disabled':''}/>
+        <span class="vote-label">${d.label}</span>
+      </label>`).join('') || '<div class="muted">No candidates yet.</div>';
+    btn.disabled = !canVote;
+    tallyBox.innerHTML='<span class="muted">Tally will appear when voting closes.</span>';
+  }else{
+    help.textContent='Voting is CLOSED. Final tally:';
+    list.innerHTML = display.map(d=>`<div class="vote-item"><span class="vote-label">${d.label}</span></div>`).join('') || '<div class="muted">No candidates.</div>';
+    btn.disabled=true;
+
+    const tally = MB.computeTally(users, chars, votes);
+    const tallyLines = display.map(d=>`- ${d.label}: <b class="tally">${tally[d.key]||0}</b>`).join('<br>');
+    tallyBox.innerHTML = tallyLines || 'No votes.';
+  }
+}
+$('castVoteBtn').onclick = async ()=>{
+  const voting = state.voting || {};
+  MB.updateCountdownPill($('voteCountdownPill'), voting.endsAt);
+
+  if (!voting.open && !voting.closed){
+    help.textContent='Waiting for Admin to open voting...';
+    list.innerHTML=''; tallyBox.innerHTML=''; btn.disabled=true; 
+    return;
   }
 
   const candidates = voting.candidates || {};
@@ -434,6 +614,7 @@ function renderPlayerVoting(room, uidVal, state, users, chars){
 $('castVoteBtn').onclick = async ()=>{
   const room = store.get('mb_room'); const name = store.get('mb_name');
   if (!room || !name) return;
+  if (!activeSession.canVote){ alert('You cannot vote right now.'); return; }
   const myUid = MB.uid(room,name);
   const stateSnap = await db.ref(`rooms/${room}/state`).get();
   const state = stateSnap.exists()? stateSnap.val() : {};

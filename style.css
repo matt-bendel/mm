@@ -57,6 +57,7 @@
   .tab-bar{display:flex; flex-wrap:wrap; gap:8px}
   .tab-btn{background:#15151a; border:1px solid #27272f; color:#d6d6dc; padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600}
   .tab-btn.active{background:linear-gradient(180deg,var(--accent2),var(--accent)); border-color:var(--accent); color:#fff; box-shadow:0 8px 22px rgba(224,30,55,.25)}
+  .tab-btn.locked{opacity:.4; cursor:not-allowed; pointer-events:none}
   .tab-panels{margin-top:12px; display:grid; gap:12px}
   .tab-panel{display:none}
   .tab-panel.active{display:block}

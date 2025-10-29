@@ -164,10 +164,22 @@ function hideTopLinksAfterJoin(joined){
 }
 
 const tabState = { current: 'tab-objectives' };
+const tabLock = { target: null };
 const playerTabBar = $('playerTabBar');
 const tabButtons = playerTabBar ? [...playerTabBar.querySelectorAll('.tab-btn')] : [];
 const tabPanels = ()=> [...document.querySelectorAll('.tab-panel')];
+function applyTabLockStyles(){
+  tabButtons.forEach(btn=>{
+    const target = btn.getAttribute('data-target');
+    const locked = !!(tabLock.target && target !== tabLock.target);
+    btn.disabled = locked;
+    btn.classList.toggle('locked', locked);
+  });
+}
 function activateTab(targetId){
+  if (tabLock.target && targetId !== tabLock.target){
+    targetId = tabLock.target;
+  }
   tabState.current = targetId;
   tabButtons.forEach(btn=>{
     const target = btn.getAttribute('data-target');
@@ -181,15 +193,26 @@ function activateTab(targetId){
     panel.classList.toggle('active', active);
     panel.hidden = !active;
   });
+  applyTabLockStyles();
+}
+function setTabLock(targetId){
+  if (tabLock.target === targetId) return;
+  tabLock.target = targetId;
+  applyTabLockStyles();
+  if (tabLock.target){
+    activateTab(tabLock.target);
+  }
 }
 if (playerTabBar){
   playerTabBar.addEventListener('click', (evt)=>{
     const btn = evt.target.closest('.tab-btn');
-    if (!btn || btn.hasAttribute('hidden')) return;
+    if (!btn || btn.disabled) return;
     const target = btn.getAttribute('data-target');
     if (target) activateTab(target);
   });
   activateTab(tabState.current);
+}else{
+  applyTabLockStyles();
 }
 
 const activeSession = {
@@ -327,6 +350,7 @@ async function refreshActive(){
     $('panel-join').hidden = false;
     $('panel-active').hidden = true;
     tabState.current = 'tab-objectives';
+    setTabLock(null);
     activateTab(tabState.current);
     return;
   }
@@ -360,7 +384,8 @@ async function renderActiveWithData(){
     if (room) store.set(`mb_last_popup_${room}`, String(popupInfo.ts));
   }
 
-  $('roundPill').textContent = `Round: ${state.round||1}`;
+  const currentRound = (typeof state.round === 'number') ? state.round : (state.round || 1);
+  $('roundPill').textContent = `Round: ${currentRound}`;
   $('voteStatusPill').textContent = `Vote: ${voting.open ? 'OPEN' : (voting.closed ? 'CLOSED' : '-')}`;
   MB.updateCountdownPill($('voteCountdownPill'), voting.endsAt);
 
@@ -382,6 +407,7 @@ async function renderActiveWithData(){
   $('charSummaryText').innerHTML = summaryInner;
 
   if (!me){
+    setTabLock(null);
     if (roleDetailsBox) roleDetailsBox.innerHTML = 'No special role assigned.';
     if (roleTabBtn){
       roleTabBtn.hidden = true;
@@ -413,6 +439,7 @@ async function renderActiveWithData(){
   renderClues(clues);
 
   if (isDead){
+    setTabLock(null);
     activeSession.canVote = false;
     if (tabShell){
       tabShell.hidden = true;
@@ -430,6 +457,7 @@ async function renderActiveWithData(){
 
   const gameStarted = !!state.gameStarted;
   if (!gameStarted){
+    setTabLock(null);
     activeSession.canVote = false;
     if (waitingCard){
       waitingCard.hidden = false;
@@ -445,6 +473,7 @@ async function renderActiveWithData(){
   if (waitingCard) waitingCard.hidden = true;
   if (liveObjectiveBlock) liveObjectiveBlock.hidden = false;
   activeSession.canVote = true;
+  setTabLock(voting.open ? 'tab-justice' : null);
 
   const toShow = Math.min(me.tasks?.length||0, state.round||1);
   const tasks = (me.tasks||[]).slice(0, toShow);
@@ -498,13 +527,23 @@ function renderClues(clues){
 }
 
 function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
-  const help = $('voteHelp'), list = $('candidateList'), tallyBox = $('tallyBox'), btn = $('castVoteBtn');
+  const help = $('voteHelp');
+  const list = $('candidateList');
+  const tallyBox = $('tallyBox');
+  const btn = $('castVoteBtn');
+  const countdown = $('voteCountdownPill');
+  if (!help || !list || !tallyBox || !btn) return;
+
   const voting = state.voting || {};
-  MB.updateCountdownPill($('voteCountdownPill'), voting.endsAt);
+  MB.updateCountdownPill(countdown, voting.endsAt);
 
   if (!voting.open && !voting.closed){
     help.textContent = canVote ? 'Waiting for Admin to open voting...' : 'You cannot vote in this round.';
-    list.innerHTML=''; tallyBox.innerHTML=''; btn.disabled=true; return;
+    list.innerHTML = '';
+    tallyBox.innerHTML = '';
+    btn.disabled = true;
+    btn.dataset.forbiddenCandidate = '';
+    return;
   }
 
   const candidates = voting.candidates || {};
@@ -512,7 +551,7 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
   const items = Object.keys(candidates);
 
   let myVote = votes[uidVal] || '';
-  let forbidUid = null;
+  let forbidUid = '';
   if (me?.specialRole === 'Thrall' && state.originalElderUid){
     const elder = users[state.originalElderUid];
     if (elder && !userIsDead(elder, chars)){
@@ -525,18 +564,18 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
     }
   }
 
-  const display = items.map(k=>{
-    const u = users[k];
-    let charName = '';
-    if (u && u.charId && chars[u.charId]) charName = baseCharName(chars[u.charId].name);
+  const display = items.map(candidateUid=>{
+    const u = users[candidateUid];
+    const charName = (u && u.charId && chars[u.charId]) ? baseCharName(chars[u.charId].name) : '';
     const dead = u ? userIsDead(u, chars) : false;
     const charPart = charName ? `${dead ? `<span class="dead-name">${charName}</span>` : charName}${dead ? ' (dead)' : ' (alive)'}` : (dead ? '(dead)' : '(alive)');
-    const label = u ? `${u.name}${charName ? ' - ' + charPart : ' ' + charPart}` : k;
-    const blocked = !!forbidUid && forbidUid === k;
-    return {key:k, label: blocked ? `${label} <span class="muted">(bound)</span>` : label, dead: !!dead, blocked};
+    const label = u ? `${u.name}${charName ? ' - ' + charPart : ' ' + charPart}` : candidateUid;
+    const blocked = !!forbidUid && forbidUid === candidateUid;
+    return {key: candidateUid, label: blocked ? `${label} <span class="muted">(bound)</span>` : label, dead, blocked};
   });
 
   const youAreCandidate = !!candidates[uidVal];
+  btn.dataset.forbiddenCandidate = forbidUid;
 
   if (voting.open){
     const baseHelp = 'Voting is OPEN. Choose one candidate.';
@@ -548,74 +587,37 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
         <span class="vote-label">${d.label}</span>
       </label>`).join('') || '<div class="muted">No candidates yet.</div>';
     btn.disabled = !canVote;
-    tallyBox.innerHTML='<span class="muted">Tally will appear when voting closes.</span>';
+    tallyBox.innerHTML = '<span class="muted">Tally will appear when voting closes.</span>';
   }else{
-    help.textContent='Voting is CLOSED. Final tally:';
+    help.textContent = 'Voting is CLOSED. Final tally:';
     list.innerHTML = display.map(d=>`<div class="vote-item"><span class="vote-label">${d.label}</span></div>`).join('') || '<div class="muted">No candidates.</div>';
-    btn.disabled=true;
+    btn.disabled = true;
 
     const tally = MB.computeTally(users, chars, votes);
     const tallyLines = display.map(d=>`- ${d.label}: <b class="tally">${tally[d.key]||0}</b>`).join('<br>');
     tallyBox.innerHTML = tallyLines || 'No votes.';
   }
 }
-$('castVoteBtn').onclick = async ()=>{
-  const voting = state.voting || {};
-  MB.updateCountdownPill($('voteCountdownPill'), voting.endsAt);
 
-  if (!voting.open && !voting.closed){
-    help.textContent='Waiting for Admin to open voting...';
-    list.innerHTML=''; tallyBox.innerHTML=''; btn.disabled=true; 
+$('castVoteBtn').onclick = async ()=>{
+  const room = store.get('mb_room');
+  const name = store.get('mb_name');
+  if (!room || !name) return;
+  if (!activeSession.canVote){
+    alert('You cannot vote right now.');
     return;
   }
-
-  const candidates = voting.candidates || {};
-  const votes = voting.votes || {};
-  const items = Object.keys(candidates);
-
-  const display = items.map(k=>{
-    const u = users[k];
-    let charName = '';
-    if (u && u.charId && chars[u.charId]) charName = baseCharName(chars[u.charId].name);
-    const dead = u?.dead || (u?.charId && chars[u.charId]?.dead);
-    const label = u ? `${u.name}${charName? ' — '+charName:''}${dead?' (dead)':''}` : k;
-    return {key:k, label, dead: !!dead};
-  });
-
-  const myVote = votes[uidVal] || '';
-  const youAreCandidate = !!candidates[uidVal];
-
-  if (voting.open){
-    help.textContent = 'Voting is OPEN. Choose one candidate.' + (youAreCandidate ? ' (You are also a candidate.)' : '');
-    list.innerHTML = display.map(d=>`
-      <label class="vote-item">
-        <input type="radio" name="voteChoice" value="${d.key}" ${myVote===d.key?'checked':''} ${d.dead?'disabled':''}/>
-        <div>${d.label}</div>
-      </label>`).join('') || '<div class="muted">No candidates yet.</div>';
-    btn.disabled=false;
-    tallyBox.innerHTML='<span class="muted">Tally will appear when voting closes.</span>';
-  }else{
-    help.textContent='Voting is CLOSED. Final tally:';
-    list.innerHTML = display.map(d=>`<div class="vote-item"><div>${d.label}</div></div>`).join('') || '<div class="muted">No candidates.</div>';
-    btn.disabled=true;
-
-    const tally = MB.computeTally(users, chars, votes);
-    const tallyLines = display.map(d=>`- ${d.label}: <b class="tally">${tally[d.key]||0}</b>`).join('<br>');
-    tallyBox.innerHTML = tallyLines || 'No votes.';
-  }
-}
-
-$('castVoteBtn').onclick = async ()=>{
-  const room = store.get('mb_room'); const name = store.get('mb_name');
-  if (!room || !name) return;
-  if (!activeSession.canVote){ alert('You cannot vote right now.'); return; }
-  const myUid = MB.uid(room,name);
-  const stateSnap = await db.ref(`rooms/${room}/state`).get();
-  const state = stateSnap.exists()? stateSnap.val() : {};
-  if (!state.voting?.open){ alert('Voting is not open.'); return; }
-
   const choice = document.querySelector('input[name="voteChoice"]:checked');
-  if (!choice){ alert('Pick a candidate.'); return; }
+  if (!choice){
+    alert('Pick a candidate.');
+    return;
+  }
+  const forbidden = $('castVoteBtn').dataset.forbiddenCandidate || '';
+  if (forbidden && choice.value === forbidden){
+    alert('You are bound to the Elder and cannot vote against them.');
+    return;
+  }
+  const myUid = MB.uid(room, name);
   await db.ref(`rooms/${room}/state/voting/votes/${myUid}`).set(choice.value);
   alert('Vote recorded.');
 };
@@ -625,5 +627,6 @@ document.addEventListener('DOMContentLoaded', ()=> refreshActive());
 </script>
 </body>
 </html>
+
 
 

@@ -85,8 +85,11 @@
                   </div>
                   <div class="divider"></div>
                   <div class="row" style="gap:10px; align-items:flex-end">
-                    <div><label>Round</label><input id="adminRoundDisplay" disabled /></div>
-                    <button class="btn" id="nextRoundBtn">Advance to Next Round</button>
+            <div><label>Round</label><input id="adminRoundDisplay" disabled /></div>
+            <div class="row" style="gap:8px">
+              <button class="btn" id="nextRoundBtn">Advance to Next Round</button>
+              <button class="btn secondary" id="resetRoundBtn">Reset to Round 0</button>
+            </div>
                   </div>
                   <div class="divider"></div>
                   <div class="row" style="gap:10px; align-items:flex-end; flex-wrap:wrap">
@@ -720,6 +723,19 @@ $('nextRoundBtn').onclick = async ()=>{
     return state;
   });
   await checkWinConditions(room, popup);
+};
+$('resetRoundBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  clearVoteTimers();
+  await mutateState(room, state=>{
+    state.round = 0;
+    state.gameStarted = false;
+    state.voting = { open:false, closed:false, candidates:null, votes:null, endsAt:null };
+    return state;
+  });
+  await checkWinConditions(room, popup);
+  popup('Game Reset', 'Round reset to 0 and game returned to lobby.');
 };
 $('openVotingBtn').onclick = async ()=>{
   if (!ADMIN_OK) return;

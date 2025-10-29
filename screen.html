@@ -46,6 +46,7 @@ const DEFAULT_ROUND_DURATION = 20 * 60 * 1000;
 
 const screenSession = {
   room: '',
+  pass: '',
   listeners: [],
   data: {state:null, users:null, characters:null},
   cardOrder: {}
@@ -113,7 +114,7 @@ function renderCharacters(){
   const claimed = entries.filter(([id])=> userByChar[id]);
   if (!claimed.length){
     board.classList.add('empty');
-    board.innerHTML = '<div class="center-spacer"></div><div class="card-placeholder muted">Waiting for players...</div>';
+    board.innerHTML = '<div class="card-placeholder muted">Waiting for players...</div><div class="center-spacer"></div>';
     scheduleCenterSpacerSync();
     return;
   }
@@ -122,18 +123,23 @@ function renderCharacters(){
     if (!screenSession.cardOrder[id]) screenSession.cardOrder[id] = Math.random();
   });
   const ordered = claimed.slice().sort((a,b)=> (screenSession.cardOrder[a[0]]||0) - (screenSession.cardOrder[b[0]]||0));
-  const cardsHtml = ordered.map(([id,char])=>{
+  const left = [];
+  const right = [];
+  ordered.forEach(([id,char], idx)=>{
     const player = userByChar[id];
     const dead = userIsDead(player, chars) || !!char.dead;
     const classes = ['character-card','claimed'];
     if (dead) classes.push('dead');
     const playerName = player && player.name ? player.name : (char.claimedBy || 'Unknown');
-    return `<div class="${classes.join(' ')}">
+    const cardMarkup = `<div class="${classes.join(' ')}">
       <div class="char-name${dead ? ' dead-name' : ''}">${baseCharName(char.name)}</div>
       <div class="char-player${dead ? ' dead-name' : ''}">${playerName}</div>
     </div>`;
-  }).join('');
-  board.innerHTML = `<div class="center-spacer"></div>${cardsHtml}`;
+    (idx % 2 === 0 ? left : right).push(cardMarkup);
+  });
+  const leftHtml = left.join('') || '<div class="card-placeholder muted">Awaiting more players...</div>';
+  const rightHtml = right.join('');
+  board.innerHTML = `<div class="card-column card-column-left">${leftHtml}</div><div class="center-spacer"></div><div class="card-column card-column-right">${rightHtml}</div>`;
   scheduleCenterSpacerSync();
 }
 
@@ -262,7 +268,15 @@ function renderCenter(){
     stage.dataset.state = 'welcome';
     titleEl.textContent = 'Welcome to Moonlit Bandanas';
     timerEl.textContent = '';
-    bodyEl.textContent = 'Waiting for the host to begin the night.';
+    const url = 'https://matt-bendel.github.io/mm/';
+    const roomCode = screenSession.room || '----';
+    const passcode = screenSession.pass || '----';
+    bodyEl.innerHTML = `<div class="screen-welcome">
+      <p>Join the game at <strong>${url}</strong></p>
+      <p>Room Code: <span class="pill">${roomCode}</span></p>
+      <p>Passcode: <span class="pill">${passcode}</span></p>
+      <p class="muted" style="margin-top:10px;">Waiting for the host to begin the night.</p>
+    </div>`;
     scheduleCenterSpacerSync();
     return;
   }
@@ -327,6 +341,7 @@ $('screenConnectBtn').onclick = async ()=>{
     const ok = await verifyRoomPassword(room, pass);
     if (!ok){ status.textContent = 'Incorrect password.'; return; }
     ensureListeners(room);
+    screenSession.pass = pass;
     $('screen-join').hidden = true;
     $('screen-main').hidden = false;
     status.textContent = '';

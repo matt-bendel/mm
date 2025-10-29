@@ -80,10 +80,11 @@
   .screen-body .wrap{max-width:1180px; margin:0 auto; padding:24px;}
   .screen-panel{background:transparent; border:none; box-shadow:none; padding:0;}
   .screen-stage{position:relative; min-height:78vh;}
-  .card-cloud{display:flex; flex-wrap:wrap; gap:22px; padding:140px 60px; justify-content:center; align-items:center; align-content:center; position:relative;}
-  .card-cloud.empty{display:flex; align-items:center; justify-content:center; padding:100px 40px; flex-direction:column; flex-wrap:nowrap;}
-  .center-spacer{flex:0 0 clamp(340px, 45vw, 560px); min-height:clamp(260px, 42vh, 460px); pointer-events:none; margin:12px; max-width:100%;}
-  .card-cloud.empty .center-spacer{flex-basis:clamp(280px, 42vw, 480px); min-height:clamp(220px, 36vh, 380px);}
+  .card-cloud{display:flex; flex-wrap:nowrap; gap:36px; padding:140px 60px; justify-content:center; align-items:flex-start; align-content:flex-start; position:relative;}
+  .card-cloud.empty{display:flex; align-items:center; justify-content:center; padding:120px 40px; gap:24px;}
+  .center-spacer{flex:0 0 clamp(360px, 48vw, 620px); min-height:clamp(260px, 46vh, 520px); pointer-events:none;}
+  .card-column{display:flex; flex-direction:column; gap:18px; flex:1 1 320px; max-width:360px;}
+  .card-cloud.empty .center-spacer{flex-basis:clamp(300px, 44vw, 520px); min-height:clamp(240px, 40vh, 420px);}
   .card-placeholder{font-size:20px; text-align:center;}
   .character-card{border:1px solid #2a2a30; border-radius:12px; padding:14px 16px; background:#101014; text-align:center; display:grid; gap:6px; min-width:200px;}
   .character-card.claimed{border-color:var(--accent); box-shadow:0 0 20px rgba(224,30,55,.25);}

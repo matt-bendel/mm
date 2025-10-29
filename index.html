@@ -88,6 +88,7 @@
                 </div>
                 <div class="divider"></div>
                 <div id="tallyBox" class="muted"></div>
+                <div id="voteResultBox" class="muted" style="margin-top:10px"></div>
               </div>
             </div>
           </section>
@@ -246,7 +247,8 @@ const activeSession = {
   lastPopupTs: 0,
   canVote: false,
   seenClues: new Set(),
-  cluesBootstrapped: false
+  cluesBootstrapped: false,
+  lastVoteSummary: null
 };
 
 function resetActiveData(){
@@ -257,6 +259,7 @@ function resetActiveData(){
   activeSession.lastPopupTs = 0;
   activeSession.seenClues = new Set();
   activeSession.cluesBootstrapped = false;
+  activeSession.lastVoteSummary = null;
   clearClueAlert();
 }
 
@@ -410,7 +413,13 @@ async function renderActiveWithData(){
 
   const popupInfo = state.lastPopup;
   if (popupInfo?.ts && popupInfo.ts !== activeSession.lastPopupTs){
-    popup(popupInfo.title || 'Notice', popupInfo.html || popupInfo.body || '');
+    const title = popupInfo.title || '';
+    const isVoteResult = /mob justice/i.test(title) && /result/i.test(title);
+    if (isVoteResult){
+      activeSession.lastVoteSummary = popupInfo;
+    }else{
+      popup(title || 'Notice', popupInfo.html || popupInfo.body || '');
+    }
     activeSession.lastPopupTs = popupInfo.ts;
     if (room) store.set(`mb_last_popup_${room}`, String(popupInfo.ts));
   }
@@ -620,9 +629,11 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
   const help = $('voteHelp');
   const list = $('candidateList');
   const tallyBox = $('tallyBox');
+  const resultsBox = $('voteResultBox');
   const btn = $('castVoteBtn');
   const countdown = $('voteCountdownPill');
   if (!help || !list || !tallyBox || !btn) return;
+  if (resultsBox) resultsBox.innerHTML = '';
 
   const voting = state.voting || {};
   MB.updateCountdownPill(countdown, voting.endsAt, 'Vote Timer');
@@ -633,6 +644,11 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
     tallyBox.innerHTML = '';
     btn.disabled = true;
     delete btn.dataset.forbiddenCandidate;
+    if (resultsBox && activeSession.lastVoteSummary){
+      const summary = activeSession.lastVoteSummary;
+      const inner = summary?.html || summary?.body || '';
+      resultsBox.innerHTML = `<div class="vote-summary">${inner}</div>`;
+    }
     return;
   }
 
@@ -669,6 +685,7 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
   else delete btn.dataset.forbiddenCandidate;
 
   if (voting.open){
+    activeSession.lastVoteSummary = null;
     const baseHelp = 'Voting is OPEN. Choose one candidate.';
     const extra = forbidUid ? ' (You may not vote for the Elder while bound.)' : '';
     help.textContent = canVote ? baseHelp + (youAreCandidate ? ' (You are also a candidate.)' : '') + extra : 'Voting is OPEN, but you may not vote.';
@@ -687,6 +704,12 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
     const tally = MB.computeTally(users, chars, votes);
     const tallyLines = display.map(d=>`- ${d.label}: <b class="tally">${tally[d.key]||0}</b>`).join('<br>');
     tallyBox.innerHTML = tallyLines || 'No votes.';
+
+    if (resultsBox){
+      const summary = activeSession.lastVoteSummary;
+      const inner = summary?.html || summary?.body || '';
+      resultsBox.innerHTML = inner ? `<div class="vote-summary">${inner}</div>` : '';
+    }
   }
 }
 

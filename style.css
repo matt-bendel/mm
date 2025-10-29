@@ -50,6 +50,7 @@
   .todo span{flex:1; text-align:left}
   .todo.done{opacity:.7}
   .todo.done span{text-decoration:line-through}
+  .todo input {width: auto;}
 
   /* Tabs */
   .tab-shell{margin-top:12px}

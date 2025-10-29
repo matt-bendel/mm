@@ -75,8 +75,10 @@
   .screen-body .wrap{max-width:1180px; margin:0 auto; padding:24px;}
   .screen-panel{background:transparent; border:none; box-shadow:none; padding:0;}
   .screen-stage{position:relative; min-height:78vh;}
-  .card-cloud{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:22px; padding:140px 60px; justify-items:center; align-content:center;}
+  .card-cloud{display:flex; flex-wrap:wrap; gap:22px; padding:140px 60px; justify-content:center; align-items:center; align-content:center; position:relative;}
+  .card-cloud::before{content:''; flex:0 0 clamp(320px, 40vw, 520px); height:clamp(260px, 38vh, 420px); margin:20px; pointer-events:none;}
   .card-cloud.empty{display:flex; align-items:center; justify-content:center; padding:100px 40px;}
+  .card-cloud.empty::before{content:none;}
   .card-placeholder{font-size:20px; text-align:center;}
   .character-card{border:1px solid #2a2a30; border-radius:12px; padding:14px 16px; background:#101014; text-align:center; display:grid; gap:6px; min-width:200px;}
   .character-card.claimed{border-color:var(--accent); box-shadow:0 0 20px rgba(224,30,55,.25);}

@@ -373,7 +373,16 @@ async function renderActiveWithData(){
   const me = users ? users[myUid] : null;
   const charRec = (me && me.charId && chars[me.charId]) || (charId && chars[charId]) || null;
   const charLine = baseCharName(charRec ? charRec.name : (charName||'-'));
-  const bio = (charRec && (charRec.bio || charRec.desc)) || '';
+  const charDetails = [];
+  if (charRec){
+    if (charRec.ties) charDetails.push(`<div><b>Ties:</b> ${charRec.ties}</div>`);
+    if (charRec.quirk) charDetails.push(`<div><b>Quirk:</b> ${charRec.quirk}</div>`);
+    if (charRec.secret) charDetails.push(`<div><b>Secret:</b> ${charRec.secret}</div>`);
+    if (!charDetails.length && (charRec.bio || charRec.desc)){
+      charDetails.push(`<div class="muted">${charRec.bio || charRec.desc}</div>`);
+    }
+  }
+  const detailsBlock = charDetails.length ? `<div class="char-details">${charDetails.join('')}</div>` : '';
 
   const popupInfo = state.lastPopup;
   if (popupInfo?.ts && popupInfo.ts !== activeSession.lastPopupTs){
@@ -393,6 +402,7 @@ async function renderActiveWithData(){
   const waitingBody = waitingCard ? waitingCard.querySelector('.muted') : null;
   const liveObjectiveBlock = $('liveObjectiveBlock');
   const notesBox = $('notesBox');
+  const notesCard = notesBox ? notesBox.closest('.card') : null;
   const elderTargetsBox = $('elderTargetsBox');
   const elderTargetsList = $('elderTargetsList');
   const tabShell = document.querySelector('.tab-shell');
@@ -402,7 +412,7 @@ async function renderActiveWithData(){
   const isDead = me ? userIsDead(me, chars) : false;
   $('charHeader').textContent = me ? `Your Character${isDead ? ' (Dead)' : ''}` : 'Your Character';
   const nameMarkup = `<b>${isDead ? `<span class="dead-name">${charLine}</span>` : charLine}</b>`;
-  const summaryInner = me ? `<div>${nameMarkup}</div>${bio ? `<div class="muted" style="margin-top:6px">${bio}</div>` : ''}`
+  const summaryInner = me ? `<div>${nameMarkup}</div>${detailsBlock}`
                           : `<div><b>${charLine}</b></div><div class="muted">Waiting for assignment sync...</div>`;
   $('charSummaryText').innerHTML = summaryInner;
 
@@ -420,6 +430,7 @@ async function renderActiveWithData(){
     if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
     if (elderTargetsBox) elderTargetsBox.hidden = true;
     if (tabShell) tabShell.hidden = true;
+    if (notesCard) notesCard.hidden = true;
     renderClues(clues);
     activeSession.canVote = false;
     return;
@@ -452,6 +463,7 @@ async function renderActiveWithData(){
     if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
     if (elderTargetsBox) elderTargetsBox.hidden = true;
     if (objectiveCard) objectiveCard.hidden = false;
+    if (notesCard) notesCard.hidden = false;
     if (todoListEl) todoListEl.innerHTML = '<div class="muted">Eliminated players cannot complete objectives.</div>';
     return;
   }
@@ -467,6 +479,7 @@ async function renderActiveWithData(){
     if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
     if (elderTargetsBox) elderTargetsBox.hidden = true;
     if (objectiveCard) objectiveCard.hidden = false;
+    if (notesCard) notesCard.hidden = false;
     if (todoListEl) todoListEl.innerHTML = '<div class="muted">Objectives unlock when the host starts the round.</div>';
     renderPlayerVoting(room, myUid, state, users, chars, activeSession.canVote, me);
     return;
@@ -479,6 +492,7 @@ async function renderActiveWithData(){
 
   const isActiveElder = me.specialRole === 'Elder Vampire';
   if (objectiveCard) objectiveCard.hidden = isActiveElder;
+  if (notesCard) notesCard.hidden = isActiveElder;
   if (todoListEl){
     if (isActiveElder){
       todoListEl.innerHTML = '<div class="muted">As the Elder Vampire, your focus is on the marked targets alone.</div>';

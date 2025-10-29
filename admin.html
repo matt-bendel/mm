@@ -61,7 +61,7 @@
                       <option>Elder Vampire</option>
                       <option>Lesser Vampire</option>
                       <option>Thrall</option>
-                      <option>Night Warden</option>
+                      <option>Vampire Hunter</option>
                       <option>Mirrorcloak</option>
                       <option>Gravespeaker</option>
                     </select>
@@ -767,7 +767,7 @@ $('randomRolesBtn').onclick = async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
   const claimed = buildClaimedPlayers();
-  const roles = ['Elder Vampire','Lesser Vampire','Thrall','Night Warden','Mirrorcloak','Gravespeaker'];
+  const roles = ['Elder Vampire','Lesser Vampire','Thrall','Vampire Hunter','Mirrorcloak','Gravespeaker'];
   if (claimed.length < roles.length){
     $('specialStatus').textContent = `Need at least ${roles.length} claimed players to assign all roles.`;
     return;
@@ -962,7 +962,21 @@ $('useDefaultCharsBtn').onclick = async ()=>{
   const room = currentAdminRoom();
   const chars={}; MB.DEFAULT_CHAR_OBJS.forEach((o,i)=>{
     const id='c_'+i.toString().padStart(3,'0');
-    chars[id] = {name:o.name, desc:o.desc, claimedBy:null, dead:false};
+    const summaryParts = [];
+    if (o.ties) summaryParts.push(`Ties: ${o.ties}`);
+    if (o.quirk) summaryParts.push(`Quirk: ${o.quirk}`);
+    if (o.secret) summaryParts.push(`Secret: ${o.secret}`);
+    chars[id] = {
+      name:o.name,
+      ties:o.ties||null,
+      quirk:o.quirk||null,
+      secret:o.secret||null,
+      goals:o.goals||[],
+      desc:summaryParts.join(' | ')||null,
+      claimedBy:null,
+      claimedAt:null,
+      dead:false
+    };
   });
   await db.ref(`rooms/${room}/characters`).set(chars);
   $('csvStatus').textContent='Default characters loaded.';

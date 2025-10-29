@@ -91,7 +91,12 @@ $('tab-clues').onclick = e=>{e.preventDefault();showPanel('clues'); renderCluesP
 
 // Defaults
 function fillDefaultChars(){
-  $('rolePool').value = DEFAULT_CHAR_OBJS.map(o=>`${o.name} — ${o.desc}`).join("\n");
+  const lines = DEFAULT_CHAR_OBJS.map(o=>{
+    const parts = [o.name || '', o.ties || '', o.quirk || '', o.secret || ''];
+    (o.goals || []).forEach(goal=> parts.push(goal));
+    return parts.join(' | ');
+  });
+  $('rolePool').value = lines.join("\n");
 }
 function fillDefaultGoals(){
   $('goalsBox').value = DEFAULT_TASKS.join("\n");
@@ -118,10 +123,31 @@ $('createRoomBtn').onclick = async ()=>{
   const chars = {};
   unique.forEach((line,i)=>{
     const id = 'c_'+i.toString().padStart(3,'0');
-    const [name, ...rest] = line.split('—');
-    const nm = (name||'').trim();
-    const desc = (rest.join('—')||'').trim() || null;
-    chars[id] = {name: desc ? `${nm} — ${desc}` : nm, desc, claimedBy:null, claimedAt:null, dead:false};
+    if (line.includes('|')){
+      const parts = line.split('|').map(s=>s.trim());
+      const [rawName='', ties='', quirk='', secret='', ...goalParts] = parts;
+      const goals = goalParts.filter(Boolean);
+      const summaryBits = [];
+      if (ties) summaryBits.push(`Ties: ${ties}`);
+      if (quirk) summaryBits.push(`Quirk: ${quirk}`);
+      if (secret) summaryBits.push(`Secret: ${secret}`);
+      chars[id] = {
+        name: rawName || `Character ${i+1}`,
+        ties: ties || null,
+        quirk: quirk || null,
+        secret: secret || null,
+        goals,
+        desc: summaryBits.join(' | ') || null,
+        claimedBy:null,
+        claimedAt:null,
+        dead:false
+      };
+    }else{
+      const [name, ...rest] = line.split('—');
+      const nm = (name||'').trim();
+      const desc = (rest.join('—')||'').trim() || null;
+      chars[id] = {name: nm, desc, claimedBy:null, claimedAt:null, dead:false};
+    }
   });
 
   // Tasks/Goals

@@ -69,6 +69,8 @@
   .target-grid{display:grid; gap:12px; margin-top:10px}
   .target-row{border:1px solid #242428; border-radius:12px; padding:12px; background:#101014}
   .target-row label{font-weight:600}
+  .char-details{margin-top:8px; display:grid; gap:6px; text-align:left}
+  .char-details b{color:var(--accent2); font-weight:600}
 
   /* Burned parchment for clues */
   .parchment{

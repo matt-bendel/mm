@@ -1,4 +1,4 @@
-﻿// ====== Moonlit Bandanas — Shared App JS ======
+﻿// ====== Moonlit Bandanas - Shared App JS ======
 /*
   Put this file next to your HTML files and include it with:
   <script src="/app.js"></script>
@@ -128,59 +128,67 @@ const MB = (function(){
     const DEFAULT_TASKS = [
       "Learn two names and one hobby.",
       "Trade a small trinket or token with someone.",
-      "Share one rumor or clue you’ve heard.",
+      "Share one rumor or clue you've heard.",
       "Publicly vouch for or accuse exactly one person.",
       "Find someone who matches a clue and ask them about it."
     ];
     const DEFAULT_CHAR_OBJS = [
-      {name:"V. M. Pyre", desc:"A traveling fire performer who picks up odd jobs setting safe flame effects for events. Pyre regularly tests candle prototypes for Ember Hollow and keeps Raven Cask supplied with clean-burning wicks for tasting nights. Pyre and Thorn Ever once settled a messy tab together, which earned them a quiet reputation for being reliable when money is tight."},
-      {name:"Ashen Vale", desc:"A level-headed apothecary who stocks practical remedies and tracks who needs a check-in. Ashen reminds Mist Graves to keep a night cord handy and swaps herb bundles with Ivy Haze during early market hours. When supplies run short, Ashen coordinates with Crypt Alder to restock without drama."},
-      {name:"Gloom Ivy", desc:"A lantern carver who favors sturdy casings and bright, even light. Ivy buys glass panes from Cinder Wight and experiments with Sable Nyx to see how fragrance travels in different lighting. Ivy and Rune Lantern exchange simple fixes for wicks and hinges to keep shops safe."},
-      {name:"Hex Rowan", desc:"A confident host for cards and dice who keeps rules clear and posted. Hex sets up at Ebon Thatch’s inn and asks Patch Wylde to shuffle and cut so players trust the deck. On busy nights, Hex asks Slate Crowe to jot down payouts to avoid misunderstandings."},
-      {name:"Noct Rune", desc:"A quiet note taker who walks late routes with Lumen Wolfe and writes short, factual summaries each dawn. Noct files incident notes with Slate Crowe and keeps an eye on alley lamps from Rune Lantern’s workshop. When Dusk Mariner drops off sealed envelopes, Noct logs the handoff without opening them."},
-      {name:"Cinder Wight", desc:"A patient glassblower who prefers stable heat, clear glass, and clean lines. Cinder supplies Ivy with panes that fit snugly and sells Ember Hollow jars sturdy enough for transport. During tastings at Ebon Thatch, Cinder sticks to water and leaves early to prep the morning kiln."},
-      {name:"Marrow Quinn", desc:"A careful sketcher who is known for clean diagrams, labels, and practical notes. Marrow checks in with Ashen Vale about anatomy references for small injuries and works with Crypt Alder to keep labeled storage in order. When others argue, Marrow listens and sketches layouts to help people agree on next steps."},
-      {name:"Ebon Thatch", desc:"A steady innkeeper who keeps seating fair and accounts simple. Ebon sets Hex Rowan’s games away from the bottleneck, puts Patch Wylde near the door, and tries Raven Cask’s new brews on quiet nights. When tensions rise, Ebon moves people around before problems start."},
-      {name:"Sable Nyx", desc:"A perfumer who focuses on pleasant, practical blends for crowded rooms. Sable tests how scent travels in Gloom Ivy’s lantern light and buys unusual ingredients from Dusk Mariner when the ferry comes in. Sable keeps small samples for Ember Hollow to trial with long-burn candles."},
-      {name:"Thorn Ever", desc:"A straightforward bookkeeper who balances tabs, posts totals, and closes accounts calmly. Thorn respects Slate Crowe’s record system and once helped V. M. Pyre straighten out an old debt with fair terms. When people disagree about who owes what, Thorn lays out the numbers without judgment."},
-      {name:"Cob Webber", desc:"A practical maker of latches, traps, and hooks for storerooms and shops. Cob fits cellar locks for Ebon Thatch and builds sturdy hardware for Rune Lantern’s workbench. Night Jar often buys packaging hooks from Cob for fragile curios that don’t travel well."},
-      {name:"Hallow Reed", desc:"A folk singer with a clear voice and steady tempo. Hallow performs with Piper Shade on quieter evenings and occasionally asks Echo Vane for factual checks before turning rumors into lyrics. Hallow keeps sets short when the room is tense and gives space to conversations when needed."},
-      {name:"Mist Graves", desc:"A kind, reserved sleepwalker who keeps a night cord on the wrist to stay safe. Mist checks in with Ashen Vale about sleep habits and appreciates Noct Rune’s practical notes about safer routes home. Mist stores extra rope from Dusk Mariner for foggy nights."},
-      {name:"Piper Shade", desc:"A flute seller and reliable accompanist who keeps time without stealing the spotlight. Piper plays with Hallow Reed on request and buys durable lamps from Rune Lantern for late packing. Piper and Ebon Thatch coordinate start times so music never interrupts announcements."},
-      {name:"Rune Lantern", desc:"A lantern repairer and tinkerer who keeps affordable lamps on hand for homes and shops. Rune tests wicks for Ember Hollow and shows Gloom Ivy how to avoid heat warping on tighter casings. When Mist Graves asked for a dim nightlight, Rune built a simple, dependable model."},
-      {name:"Bramble Kite", desc:"A messenger who moves notes around town quickly and keeps routes flexible during weather changes. Bramble uses Slate Crowe’s simple code marks for deliveries and relies on Dusk Mariner when fog shortens routes. When a message risks being misunderstood, Bramble asks for clarity before running it."},
-      {name:"Frost Morn", desc:"An early-rising ice seller who organizes drop-offs before the sun warms cellars. Frost stores blocks at Ebon Thatch, supplies Ember Hollow during hot spells, and takes tea with Lumen Wolfe after the last run. When carts break down, Frost checks with Cob Webber for quick fixes."},
-      {name:"Ember Hollow", desc:"A thorough candlemaker who labels wicks, scents, and burn times. Ember works with Cinder Wight for reliable jars and keeps a small list of ‘feedback tasters’ including Sable Nyx and V. M. Pyre. Echo Vane sometimes passes notes to test how rumors spread with different candle placements."},
-      {name:"Wisp Harrow", desc:"A story collector who writes down what people say and separates hearsay from fact. Wisp listens to Hallow Reed’s sets for clean summaries and checks details with Echo Vane before noting them publicly. When Thorn Ever needs timeline clarity, Wisp provides dates and names without commentary."},
-      {name:"Crypt Alder", desc:"A quartermaster who tracks incoming goods and what went missing. Crypt syncs with Slate Crowe’s records weekly and confirms with Raven Cask when shipments arrive. If someone complains, Crypt compares both lists, then asks Noct Rune whether any late-night issues were logged."},
-      {name:"Omen Lark", desc:"A friendly street reader whose ‘predictions’ are usually tips about crowd flow and timing. Omen teases Hex Rowan about lucky streaks and suggests face-friendly mask shapes to Gourd Wilder. When Ebon Thatch expects a rush, Omen quietly nudges people toward spare seating."},
-      {name:"Raven Cask", desc:"A brewer who experiments in small, labeled batches. Raven tests flavors with Ebon Thatch and keeps a tasting notebook V. M. Pyre references when open flames are part of a show. When supplies run low, Raven double-checks orders with Crypt Alder before changing a recipe."},
-      {name:"Night Jar", desc:"A curio buyer and reseller who takes small risks on odd finds. Night Jar trades marked decks with Patch Wylde and orders secure hooks from Cob Webber for fragile items. When a piece carries a story, Night Jar asks Wisp Harrow to record it for the listing."},
-      {name:"Lumen Wolfe", desc:"A volunteer night patrol who prefers straightforward routes and early starts. Lumen compares patrol notes with Noct Rune and buys long-burn candles from Ember Hollow for steady light. On cold mornings, Lumen meets Frost Morn for tea and route planning."},
-      {name:"Patch Wylde", desc:"A card worker who keeps decks tidy, cuts cleanly, and favors posted rules. Patch partners with Hex Rowan on busier nights and prefers a chair near Ebon Thatch’s door to watch traffic. When disputes rise, Patch pauses the table and defers to Ebon’s seating judgment."},
-      {name:"Echo Vane", desc:"A rumor collector who checks sources before repeating anything. Echo sometimes edits Hallow Reed’s lyrics to avoid naming names and shares neutral placement notes with Ember Hollow for crowd flow. Echo and Wisp Harrow trade dates and times to align their notes."},
-      {name:"Dusk Mariner", desc:"A ferry operator on the bog path who runs ropes that hold in shifting fog. Dusk supplies spare lines to Mist Graves and passes sealed envelopes to Noct Rune for logging. When the weather turns, Dusk coordinates with Bramble Kite to keep deliveries moving."},
-      {name:"Ivy Haze", desc:"An herb gatherer who brings labeled bundles to Ashen Vale and leaf samples to Gloom Ivy for testing under heat. Ivy shares tea with Wisp Harrow on slow afternoons and keeps small sachets for Raven Cask to trial in new brews."},
-      {name:"Slate Crowe", desc:"A record keeper who logs meetings, deliveries, and decisions with simple cross-references. Slate checks Thorn Ever’s tallies monthly and gives Bramble Kite signaling marks for routine messages. When confusion arises, Slate pulls the right page and points to the line."},
-      {name:"Gourd Wilder", desc:"A mask artisan focused on comfortable fit and clear sight lines. Gourd takes orders from Night Jar, builds shop guards for Cob Webber, and asks Omen Lark about crowd patterns before carving showy pieces. When performers complain, Gourd adjusts straps and pads without fuss."}
+  {name:"V. M. Pyre", ties:"Friends with Sable Nyx; rivals with Cob Webber.", quirk:"Randomly slips into a deep Transylvanian accent for a few seconds.", secret:"Once committed arson for insurance fraud.", goals:["Show five people your lighter.", "Get two people to light the lighter for you.", "Brag about swallowing fire but refuse to prove it.", "Accidentally tell three people about your arson secret."]},
+  {name:"Sable Nyx", ties:"Friends with V. M. Pyre; dislikes Bhad Omen.", quirk:"Constantly talks about wanting a new piercing or tattoo.", secret:"All tattoos are fake.", goals:["Ask people if they have any tattoos.", "Show off your tattoos to everyone who will listen (play up the pain).", "Draw a hideous flash doodle and invite people to get it tattooed.", "Accidentally wipe off a tattoo in front of someone and act horrified."]},
+  {name:"Bhad Omen", ties:"Dislikes Sable Nyx; friends with Dusk Mariner.", quirk:"Gasps and pretends to be sucked into visions at random.", secret:"A complete fraud.", goals:["Offer one nonsense fortune.", "Reverse your earlier fortune.", "Plant a bad omen in someone's head.", "Admit your fakeness to at least three guests."]},
+  {name:"Cob Webber", ties:"Rivals with V. M. Pyre; supplies Ashen Vale with bug ingredients.", quirk:"Gasps whenever someone says 'be/bee/b' then pretends nothing happened.", secret:"Deathly afraid of bees.", goals:["Ask five people if they heard a buzzing sound, then refuse to explain.", "Pretend to watch an imaginary bug intently until someone notices.", "Tell everyone you love bees.", "Pretend a bee lands on you and loudly freak out."]},
+  {name:"Dusk Mariner", ties:"Student of Marrow Quinn; friends with Bhad Omen.", quirk:"Can never remember where the boat is parked.", secret:"Fears water and cannot swim.", goals:["Offer passage to someone, then say you lost your boat.", "Ask several people if they like to fish.", "Insert the phrase 'sea legs' into conversation as often as possible.", "Share your fear aloud with someone."]},
+  {name:"Ashen Vale", ties:"Treats Mist Graves; buys from Cob Webber and Viney Haze.", quirk:"Carries a random book and starts reading mid-conversation.", secret:"Working on an illegal love potion.", goals:["Invent a gross potion ingredient and ask everyone if they have it.", "Check in with Mist Graves and suggest a new disgusting potion.", "Tell three people about your Ebon Thatch suspicions.", "See who will agree to take your love potion when it's finished."]},
+  {name:"Gloom Ivy", ties:"Cousin of Viney Haze; works with Jack O. Lantern.", quirk:"Loves mushrooms and becomes defensive if other foods are praised.", secret:"Slipped deadly mushrooms into an ex's meal and never got caught.", goals:["Complain about the lack of mushrooms to as many people as possible.", "Ask five people if they would do psychedelics with you, then run away if they say yes.", "Stand like a Goomba and make sound effects for five seconds.", "Tell people your secret, then pretend to forget once they respond."]},
+  {name:"Jack O. Lantern", ties:"Works with Gloom Ivy; friends with Lumen Wolfe.", quirk:"Always carrying a candle and asking people to smell it.", secret:"Has no sense of smell.", goals:["Ask three people to let you smell them.", "Ask five people for opinions on your candle.", "Give away your candle and replace it.", "Break down and admit your lack of smell to someone."]},
+  {name:"Lumen Wolfe", ties:"Friends with Jack O. Lantern; trusts Crypt I. C.", quirk:"Never likes going places alone; always asks for a buddy.", secret:"To be determined - make one up and stick to it.", goals:["Offer to escort someone somewhere.", "Ask someone to escort you somewhere.", "Tell someone how much you like the moon.", "Share your secret."]},
+  {name:"Hex B. Gone", ties:"Drinks and gambles at Guiness Cask's bar; owes Thorn E. Spike.", quirk:"Flips a coin to answer yes/no questions.", secret:"Owns loaded dice and cheated to earn a fortune.", goals:["Make a ridiculous bet with someone.", "Tell three guests how you'll get rich soon.", "Play rock-paper-scissors and get unreasonably upset if you lose.", "Accidentally admit your cheating, then bribe them to stay quiet."]},
+  {name:"Thorn E. Spike", ties:"Tracks debts for the town; gossips with Echo Vane (not Wisp Herr).", quirk:"Always has a pencil behind their ear.", secret:"In immense debt to a mysterious patron.", goals:["Ask people who owes someone a favor.", "Get someone to promise you something, even if it's small.", "Invent a debt and loudly forgive it.", "Request collateral from someone to help with your loan."]},
+  {name:"Guiness Cask", ties:"Sells to the entire town; buys ice from Frost Morn.", quirk:"Compulsive and obvious liar.", secret:"Saw someone recoil from garlic at the bar.", goals:["Tell three small lies people might catch.", "Tell three obvious lies and insist they are true.", "Give a toast to someone.", "Share your secret with as many people as possible."]},
+  {name:"Wisp Herr", ties:"Competes with Echo Vane; confidante to Cinder Weilda.", quirk:"Loudly says 'excuse me' even when already at a comfortable distance.", secret:"Every good storyteller embellishes a tad.", goals:["Get someone to share an interesting character detail.", "Tell that detail to a new person.", "Say 'that's so you' when it makes no sense.", "Admit you fib occasionally - clickbait works."]},
+  {name:"Echo Vane", ties:"Confidante to Thorn E. Spike; competes with Wisp Herr.", quirk:"Repeats themselves often.", secret:"Not all of your stories are factual.", goals:["Get someone to share an interesting character detail.", "Tell that detail to a new person.", "Say 'that's so you' when it makes no sense.", "Admit you fib occasionally - clickbait works."]},
+  {name:"Noct Rune", ties:"Studied with Slate Crowe; reports to Crypt I. C.", quirk:"Avoids reading and asks others to read for them.", secret:"Can speak any language but can't read at all.", goals:["Find out how many people are right-handed.", "Ask three people their favorite book.", "Correct grammar whenever possible.", "Drop multilingual words to show how educated you are."]},
+  {name:"Crypt I. C.", ties:"Works with Al B. Back; gets reports from Noct Rune.", quirk:"Spends days off in the cemetery.", secret:"Keeps secret items off the log - black market dealings.", goals:["Pick up a random item and ask if someone lost it.", "Compliment the condition of something in the room.", "Complain about the condition of something else in the room.", "Accidentally confess your secret to someone besides your patrons."]},
+  {name:"Cinder Weilda", ties:"Friends with Ember Hollow; gossips with Wisp Herr.", quirk:"Always inspecting and commenting on any nearby glass.", secret:"Wants to start a glass art store and needs a partner.", goals:["Point out something glass in every conversation.", "Give someone a glass-themed compliment.", "Complain about plastic cups to everyone.", "Find a partner for your new store."]},
+  {name:"Ember Hollow", ties:"Friends with Cinder Weilda; admires Night Jar.", quirk:"Makes an 'ah' sound after each drink.", secret:"Hides a poisonous blade.", goals:["Ask someone about their tattoos.", "Get a bandage from a guest (not a host).", "Give Cinder Weilda a high five.", "Admit your secret to someone."]},
+  {name:"Night Jar", ties:"Gets masks from Al B. Back; friends with Echo Vane.", quirk:"Stands silently in shadows when not engaged.", secret:"Sells replicas as genuine relics.", goals:["Offer to appraise someone's trinket and make it up.", "Convince someone your outfit piece is designer.", "Identify a skeptic.", "Return a trinket with dramatic flourish."]},
+  {name:"Marrow Quinn", ties:"Taught Dusk Mariner; admires Noct Rune.", quirk:"Fascinated by physical traits.", secret:"Keeps a secret sketchbook of abstract art.", goals:["Find out who is left-handed.", "Ask who has a scar and where.", "Ask everyone if their earlobes are attached.", "Drop your sketchbook and act horrified when it's seen."]},
+  {name:"Raven Thatch", ties:"Friends with Frost Morn; overcharges Piper Shade.", quirk:"Always offering candy and begging for good reviews.", secret:"Runs a brothel out of the inn.", goals:["Invite two people to your inn, act offended if they decline, but claim you're booked if they accept.", "Complain about high hotel rates to everyone.", "Ask everyone if continental breakfast should be free.", "Invite three people to your secret business using a funny code name."]},
+  {name:"Frost Morn", ties:"Friends with Raven Thatch; stocks Guiness Cask's bar with ice.", quirk:"Always talking about how cold they are - shivering included.", secret:"Hates mirrors.", goals:["Ask everyone their opinion on mirrors.", "Shiver randomly in conversation.", "Walk around with a blanket.", "Share your secret and invent a backstory if needed."]},
+  {name:"Piper Shade", ties:"Sings with Boney Eilish; barters with Bhad Omen.", quirk:"Whistles constantly, even badly.", secret:"Wants to go solo.", goals:["Get as many people as possible to try whistling.", "Ask Boney Eilish to perform a duet (bonus if it happens).", "Ask everyone their favorite music genre.", "Admit to Hallow that you want to go solo."]},
+  {name:"Boney Eilish", ties:"Duets with Piper Shade; resents Ebon Thatch.", quirk:"Randomly breaks into song mid-sentence.", secret:"Also wants to go solo.", goals:["Ask everyone their favorite song.", "Share random song lyrics you just found.", "Ask three people to match pitch with you.", "Admit to Piper you want to try going solo."]},
+  {name:"Mist Graves", ties:"Treated by Ashen Vale; admires Lumen Wolfe.", quirk:"Always tired, yawns loudly without apologizing.", secret:"Sleepwalks and wakes in strange places.", goals:["Ask two people if they saw you out last night without explaining.", "Ask someone to share their dreams with you.", "Ask everyone for tips on getting better sleep.", "Fall asleep during a group discussion."]},
+  {name:"Zom Bee", ties:"Admires Wisp Herr; works for Slate Crowe.", quirk:"Always hunting for the latest news.", secret:"Shoplifts and pickpockets in free time.", goals:["Get someone's phone number or email.", "Borrow someone's phone briefly (without snooping).", "Chat with one person, then interrupt them three times with fake calls.", "Admit your secret to the person who lent you their phone."]},
+  {name:"Slate Crowe", ties:"Hires Zom Bee; studied with Noct Rune.", quirk:"Extremely disorganized and always misplacing things.", secret:"Altered records to protect someone.", goals:["Take a head count of everyone present.", "Note the time randomly during conversation.", "Ask for - or run - a pointless vote.", "Admit your secret out of guilt to someone."]},
+  {name:"Viney Haze", ties:"Cousin of Gloom Ivy; sells to Ashen Vale.", quirk:"Hates candy and anything sweet.", secret:"Carries dangerous plant powder at all times.", goals:["Offer to season someone's drink.", "Ask a group who sneezes at sage.", "Hand over a pressed herb token that's really just a leaf.", "Accidentally spill your secret, then beg them to keep it."]},
+  {name:"Al. B. Back", ties:"Makes masks for Night Jar; sells at Crypt I. C.'s store.", quirk:"Loves making masks that look too real.", secret:"Owns a mask that looks disturbingly lifelike.", goals:["Compliment two masks or costumes.", "Ask someone if they'd let you craft a mask of them.", "Ask someone if they think you're wearing a mask right now.", "Loudly defend your creepy masks to anyone who will listen."]}
     ];
+    DEFAULT_CHAR_OBJS.forEach(o=>{
+      if (!o.desc){
+        const parts = [];
+        if (o.ties) parts.push(`Ties: ${o.ties}`);
+        if (o.quirk) parts.push(`Quirk: ${o.quirk}`);
+        if (o.secret) parts.push(`Secret: ${o.secret}`);
+        o.desc = parts.join(' | ');
+      }
+    });
     const DEFAULT_CLUES = [
-      {id:"E1", title:"The Dimming of Candles", body:"In the glassblower’s stall, a trio of candles guttered all at once, as though a mouth had drawn in the room’s breath. Witnesses swore the figure who passed by wore a ring that drank the light. They left no soot, only a whisper of clove."},
-      {id:"E2", title:"The Whispering Step", body:"Near the square of empty masks, a watcher heard footfalls that seemed to land after their own echoes. The gait was even, decisive, and oddly weightless—as if the night itself cushioned each stride."},
-      {id:"E3", title:"Threads by the Well", body:"By the old wishing well, a single thread of deep red snagged on weathered stone, the shade of a harvest moon. No cloak nearby bore that hue—perhaps it belonged to a sash tied close to the heart."},
-      {id:"E4", title:"The Breath That Wasn’t", body:"Flutes lay in their case, and yet a mourning note hung in the air as if blown by no mouth at all. The player who lingered exhaled fog though the night was warm, and smiled without teeth."},
-      {id:"E5", title:"The Lantern That Blinked", body:"A tinker’s lantern fluttered near a laughing circle—then steadied when a single figure drew near and asked no questions. Lies make it flicker, the tinker swears."},
+      {id:"E1", title:"The Dimming of Candles", body:"In the glassblower's stall, a trio of candles guttered all at once, as though a mouth had drawn in the room's breath. Witnesses swore the figure who passed by wore a ring that drank the light. They left no soot, only a whisper of clove."},
+      {id:"E2", title:"The Whispering Step", body:"Near the square of empty masks, a watcher heard footfalls that seemed to land after their own echoes. The gait was even, decisive, and oddly weightlessas if the night itself cushioned each stride."},
+      {id:"E3", title:"Threads by the Well", body:"By the old wishing well, a single thread of deep red snagged on weathered stone, the shade of a harvest moon. No cloak nearby bore that hueperhaps it belonged to a sash tied close to the heart."},
+      {id:"E4", title:"The Breath That Wasn't", body:"Flutes lay in their case, and yet a mourning note hung in the air as if blown by no mouth at all. The player who lingered exhaled fog though the night was warm, and smiled without teeth."},
+      {id:"E5", title:"The Lantern That Blinked", body:"A tinker's lantern fluttered near a laughing circle then steadied when a single figure drew near and asked no questions. Lies make it flicker, the tinker swears."},
       {id:"E6", title:"A Toast to Nowhere", body:"Someone raised an empty cup and murmured a phrase not quite language, not quite song. Those within earshot forgot a name they had just learned. The smell of old cellars followed."},
       {id:"E7", title:"Left Hand of Dusk", body:"Chalk tallies were scrawled backward on a ledger margin, lines neat yet mirrored. Whoever wrote them favored the left hand and the calm of twilight."},
       {id:"E8", title:"The Silver Coin Gone Cold", body:"A coin traded thrice in an hour turned cold enough to mist a mirror. The last to hold it tucked it away with clinical care, as though cataloging a specimen."},
-      {id:"L1", title:"The Heir in the Crowd", body:"When the bells tolled, a shadow took shelter in another’s laughter. The heir does not stand alone; they orbit a brighter star to dim their edges."},
-      {id:"L2", title:"The Smile That Stops", body:"A chuckle rang out, crisp as cracked ice, but ended sharply—habit, not humor. Hands drifted to pockets where keys or coins clicked in nervous code."},
-      {id:"L3", title:"Scent of Wet Stone", body:"On the path to the bog ferries, a scent of wet stone trailed someone who avoids shallow water, preferring docks’ deeper quiet."},
+      {id:"L1", title:"The Heir in the Crowd", body:"When the bells tolled, a shadow took shelter in another's laughter. The heir does not stand alone; they orbit a brighter star to dim their edges."},
+      {id:"L2", title:"The Smile That Stops", body:"A chuckle rang out, crisp as cracked ice, but ended sharplyhabit, not humor. Hands drifted to pockets where keys or coins clicked in nervous code."},
+      {id:"L3", title:"Scent of Wet Stone", body:"On the path to the bog ferries, a scent of wet stone trailed someone who avoids shallow water, preferring docks' deeper quiet."},
       {id:"L4", title:"The Double Shadow", body:"Two silhouettes overlapped beneath a single lantern: one tall and still, the other shifting, impatient. Only one turned when hailed."},
-      {id:"L5", title:"The Hat with No Owner", body:"A brim with a feather of ash-gray was left on a chair that always faces the door. No one claimed it—but more than one person looked too long at its seat."},
-      {id:"L6", title:"Ink Under the Nail", body:"A knuckle brushed paper and left a crescent of black under the nail—old ink that no wash could fully banish."},
+      {id:"L5", title:"The Hat with No Owner", body:"A brim with a feather of ash-gray was left on a chair that always faces the door. No one claimed itbut more than one person looked too long at its seat."},
+      {id:"L6", title:"Ink Under the Nail", body:"A knuckle brushed paper and left a crescent of black under the nailold ink that no wash could fully banish."},
       {id:"D1", title:"Red Herring: The Laughing Mask", body:"A maskmaker insisted a mask smiled on its own when a brewer sang off-key. Sweet nonsense, perhaps, or theater."},
-      {id:"D2", title:"Red Herring: The Garlic Fable", body:"Someone swore they saw a cloaked patron recoil from garlic… but the cloves were candied. Theatrical groaning followed."}
+      {id:"D2", title:"Red Herring: The Garlic Fable", body:"Someone swore they saw a cloaked patron recoil from garlic... but the cloves were candied. Theatrical groaning followed."}
     ];
   
     // Modal helpers (each page includes its own <dialog>, but we expose a generic binder)
@@ -228,7 +236,8 @@ const MB = (function(){
       if (!ok) throw new Error('Incorrect password');
       const rolesSnap = await getDB().ref(`rooms/${R}/characters`).get();
       if (!rolesSnap.exists()) throw new Error('No characters in this room');
-      const entries = Object.entries(rolesSnap.val());
+      const charMap = rolesSnap.val() || {};
+      const entries = Object.entries(charMap);
       const unclaimed = entries.filter(([id,c])=>!c.claimedBy).map(([id,c])=>({id,name:c.name}));
       if (!unclaimed.length) throw new Error('All characters are taken');
       const pick = unclaimed[Math.floor(Math.random()*unclaimed.length)];
@@ -248,8 +257,10 @@ const MB = (function(){
       await new Promise((resolve, reject)=>{
         getDB().ref(`rooms/${R}/users/${myUid}`).transaction(curr=>{
           if (curr) return curr;
+          const pickedChar = res.snapshot ? res.snapshot.val() : charMap[pick.id];
+          const goalSource = (pickedChar && Array.isArray(pickedChar.goals) && pickedChar.goals.length) ? pickedChar.goals : DEFAULT_TASKS;
           return { name: realName, charId: pick.id, specialRole: null,
-                   tasks: DEFAULT_TASKS.map(t=>({text:t, done:false})), dead:false };
+                   tasks: goalSource.map(goal=>({text:goal, done:false})), dead:false };
         }, (error, committed)=> error?reject(error):resolve(committed), false);
       });
       return pick;
@@ -263,12 +274,12 @@ const MB = (function(){
     // Role details + visibility
     function roleDetailsText(role){
       switch(role){
-        case 'Elder Vampire': return "Primary killer. One target per round, +1 extra kill each round. Knows the Lesser Vampire and the Thrall.";
-        case 'Lesser Vampire': return "Succeeds Elder upon Elder's death. Knows Elder and Thrall. No thrall of their own.";
-        case 'Thrall': return "Once-per-game compelled kill on Elder's command; freed if Elder dies.";
-        case 'Night Warden': return "Open hunter (nerf blaster). May eliminate one target per round (anyone).";
-        case 'Mirrorcloak': return "Hidden avenger. If attacked by vampire/thrall, attacker dies instantly.";
-        case 'Gravespeaker': return "Medium. After each death, may consult the dead; each spirit publicly clears one innocent.";
+        case 'Elder Vampire': return "Primary killer: places a napkin over the victims head to eliminate them with a growing kill budget (R1=1, R2=2, R3=3, R4=4). Knows the Lesser Vampire and the Thrall, and may command the Thrall to make one immediate kill. If the Elder dies the Lesser ascends and the Thrall is set free.";
+        case 'Lesser Vampire': return "Heir to the Elder. Knows the Elder and the Thrall. If the Elder is eliminated, the Lesser ascends and inherits any remaining kill budget; otherwise they wield no power and gain no thrall of their own.";
+        case 'Thrall': return "Bound servant to the Elder. Once per game, on command, must immediately carry out a kill. Knows only the Elder. Becomes Lanternfolk if the Elder dies and must never reveal the Elder’s identity while bound.";
+        case 'Vampire Hunter': return "Public role. Carries the Nerf blaster and may eliminate one target per round (friend or foe).";
+        case 'Mirrorcloak': return "Secret avenger. The first vampire, thrall, or hunter who attacks the Mirrorcloak dies instead. One-time use.";
+        case 'Gravespeaker': return "Hidden medium. After each death may ask the fallen to publicly clear one player who did not kill them. May remain hidden until choosing to act.";
         default: return null;
       }
     }
@@ -460,6 +471,7 @@ const MB = (function(){
       const aliveUsers = allUsers.filter(([uid,u])=> !userIsDead(u, chars));
       const aliveVamps = aliveUsers.filter(([uid,u])=> ['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
       const aliveNonVamps = aliveUsers.filter(([uid,u])=> !['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
+      const roundNumber = Number(state.round || 1);
   
       if (aliveVamps.length === 0){
         const html = `<div>The Elder and Lesser vampires are dead. The village prevails!</div>`;
@@ -473,7 +485,7 @@ const MB = (function(){
         await publishPopup(room, {title:'Vampires Triumph', html});
         return;
       }
-      if (state.round >= 5){
+      if (roundNumber >= 5){
         const targetSlots = elderTargetsArray(state);
         const assignedTargets = targetSlots.filter(t=> t.uid);
         const uniqueTargets = [...new Set(assignedTargets.map(t=>t.uid))];
@@ -482,13 +494,13 @@ const MB = (function(){
           const u = users[uid];
           return u ? userIsDead(u, chars) : false;
         });
-        if (allAssigned && allDead && aliveVamps.length > 0){
-          const html = `<div>The vampire plots succeeded—the marked victims all fell before the final dawn.</div>`;
+        if (allAssigned && allDead && aliveVamps.length > 0 && roundNumber >= 5){
+          const html = `<div>The vampire plots succeeded-the marked victims all fell before the final dawn.</div>`;
           if (popup) popup('Vampires Triumph', html);
           await publishPopup(room, {title:'Vampires Triumph', html});
           return;
         }
-        if (allAssigned && !allDead && state.round >= 5){
+        if (allAssigned && !allDead && roundNumber >= 5){
           const html = `<div>Dawn breaks and the remaining villagers stand firm. The vampires failed to claim every marked soul.</div>`;
           if (popup) popup('Village Victory', html);
           await publishPopup(room, {title:'Village Victory', html});

@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Moonlit Bandanas — Admin</title>
+<title>Moonlit Bandanas - Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <header>
   <div class="title">Moonlit Bandanas</div>
-  <div class="navlinks"><a href="./index.html">Join</a> · <a href="./create.html">Create</a></div>
+  <div class="navlinks"><a href="./index.html">Join</a> &bull; <a href="./create.html">Create</a></div>
 </header>
 
 <div class="wrap">
@@ -65,6 +65,7 @@
                       <option>Gravespeaker</option>
                     </select>
                     <button class="btn" id="assignSpecialBtn">Assign</button>
+                    <button class="btn secondary" id="clearRolesBtn">Unassign All</button>
                   </div>
                   <div id="specialStatus" class="muted" style="margin-top:8px"></div>
                   <div class="divider"></div>
@@ -683,6 +684,28 @@ $('assignSpecialBtn').onclick = async ()=>{
   }
   await db.ref(`rooms/${room}/users/${uid}/specialRole`).set(role);
   $('specialStatus').textContent = 'Saved.';
+  await checkWinConditions(room, popup);
+};
+$('clearRolesBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  if (!window.confirm('Remove all assigned special roles?')) return;
+  const room = currentAdminRoom();
+  const users = adminUsers();
+  const tasks = [];
+  Object.entries(users || {}).forEach(([uid, u])=>{
+    if (u.specialRole){
+      tasks.push(db.ref(`rooms/${room}/users/${uid}/specialRole`).set(null));
+    }
+  });
+  if (tasks.length) await Promise.all(tasks);
+  await mutateState(room, state=>{
+    if (state){
+      delete state.originalElderUid;
+      delete state.ascendedElderUid;
+    }
+    return state;
+  });
+  $('specialStatus').textContent = 'All special roles cleared.';
   await checkWinConditions(room, popup);
 };
 $('markDeadBtn').onclick = ()=> toggleDead(true);

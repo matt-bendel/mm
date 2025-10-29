@@ -61,6 +61,11 @@
   .tab-panels{margin-top:12px; display:grid; gap:12px}
   .tab-panel{display:none}
   .tab-panel.active{display:block}
+  .subtab-shell{margin-top:10px}
+  .subtab-bar{display:flex; flex-wrap:wrap; gap:6px}
+  .subtab-btn{background:#14141a; border:1px solid #2a2a33; color:#d0d0dc; padding:6px 12px; border-radius:999px; cursor:pointer; font-size:.9rem; font-weight:600}
+  .subtab-btn.active{background:linear-gradient(180deg,var(--accent2),var(--accent)); border-color:var(--accent); color:#fff; box-shadow:0 6px 18px rgba(224,30,55,.18)}
+  .subtab-shell.disabled .subtab-btn{opacity:.45; pointer-events:none}
   .target-grid{display:grid; gap:12px; margin-top:10px}
   .target-row{border:1px solid #242428; border-radius:12px; padding:12px; background:#101014}
   .target-row label{font-weight:600}

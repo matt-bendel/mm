@@ -550,7 +550,7 @@ function renderClues(clues){
   revealed.sort((a,b)=> a[0].localeCompare(b[0])).forEach(([id,c])=>{
     const el = document.createElement('article');
     el.className = 'parchment';
-    el.innerHTML = `<div class="tag">Clue ${id}</div><h4>${c.title||'(untitled)'}</h4><div>${c.body||''}</div>`;
+    el.innerHTML = `<h4>${c.title||'(untitled)'}</h4><div>${c.body||''}</div>`;
     box.appendChild(el);
   });
 }

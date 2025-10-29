@@ -236,6 +236,10 @@ const MB = (function(){
       if (!ok) throw new Error('Incorrect password');
       const rolesSnap = await getDB().ref(`rooms/${R}/characters`).get();
       if (!rolesSnap.exists()) throw new Error('No characters in this room');
+      const stateSnap = await getDB().ref(`rooms/${R}/state/gameStarted`).get();
+      if (stateSnap.exists() && stateSnap.val()){
+        throw new Error('Game already in progress');
+      }
       const charMap = rolesSnap.val() || {};
       const entries = Object.entries(charMap);
       const unclaimed = entries.filter(([id,c])=>!c.claimedBy).map(([id,c])=>({id,name:c.name}));

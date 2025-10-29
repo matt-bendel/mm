@@ -473,7 +473,7 @@ const MB = (function(){
         await publishPopup(room, {title:'Vampires Triumph', html});
         return;
       }
-      if (state.round >= 4){
+      if (state.round >= 5){
         const targetSlots = elderTargetsArray(state);
         const assignedTargets = targetSlots.filter(t=> t.uid);
         const uniqueTargets = [...new Set(assignedTargets.map(t=>t.uid))];
@@ -488,7 +488,7 @@ const MB = (function(){
           await publishPopup(room, {title:'Vampires Triumph', html});
           return;
         }
-        if (allAssigned && !allDead && state.round >= 4){
+        if (allAssigned && !allDead && state.round >= 5){
           const html = `<div>Dawn breaks and the remaining villagers stand firm. The vampires failed to claim every marked soul.</div>`;
           if (popup) popup('Village Victory', html);
           await publishPopup(room, {title:'Village Victory', html});

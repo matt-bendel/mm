@@ -43,6 +43,7 @@
                     <select id="deadToggleSelect"><option value="">-- select player --</option></select>
                     <button class="btn" id="markDeadBtn">Mark Dead</button>
                     <button class="btn secondary" id="markAliveBtn">Mark Alive</button>
+                    <button class="btn secondary" id="reviveAllBtn">Mark All Alive</button>
                   </div>
                   <div class="divider"></div>
                   <h4>Unclaimed Characters</h4><div id="unclaimedBox" class="muted">-</div>
@@ -66,6 +67,7 @@
                     </select>
                     <button class="btn" id="assignSpecialBtn">Assign</button>
                     <button class="btn secondary" id="clearRolesBtn">Unassign All</button>
+                    <button class="btn" id="randomRolesBtn">Random Assign All</button>
                   </div>
                   <div id="specialStatus" class="muted" style="margin-top:8px"></div>
                   <div class="divider"></div>
@@ -128,6 +130,14 @@
                 <div class="row" style="gap:10px; flex-wrap:wrap">
                   <button class="btn secondary" id="reloadCluesBtn">Reload Clues</button>
                 </div>
+                <div class="subtab-shell" id="adminClueTabShell">
+                  <div class="subtab-bar">
+                    <button class="subtab-btn active" data-filter="all">All</button>
+                    <button class="subtab-btn" data-filter="E">Elder (E)</button>
+                    <button class="subtab-btn" data-filter="L">Lesser (L)</button>
+                    <button class="subtab-btn" data-filter="D">Red Herring (D)</button>
+                  </div>
+                </div>
                 <div id="adminCluesBox" class="grid" style="gap:12px; margin-top:10px"></div>
               </div>
             </section>
@@ -182,6 +192,17 @@ const adminTabState = { current: 'admin-tab-people' };
 const adminTabBar = $('adminTabBar');
 const adminTabButtons = adminTabBar ? [...adminTabBar.querySelectorAll('.tab-btn')] : [];
 const adminTabPanels = ()=> [...document.querySelectorAll('.tab-panel')];
+const adminClueFilter = { current: 'all' };
+const adminClueShell = $('adminClueTabShell');
+const adminClueButtons = adminClueShell ? [...adminClueShell.querySelectorAll('.subtab-btn')] : [];
+function activateAdminClueFilter(filterId){
+  const normalized = filterId || 'all';
+  adminClueFilter.current = normalized;
+  adminClueButtons.forEach(btn=>{
+    const btnFilter = btn.dataset.filter || 'all';
+    btn.classList.toggle('active', btnFilter === normalized);
+  });
+}
 function activateAdminTab(targetId){
   adminTabState.current = targetId;
   adminTabButtons.forEach(btn=>{
@@ -205,6 +226,17 @@ if (adminTabBar){
     if (target) activateAdminTab(target);
   });
   activateAdminTab(adminTabState.current);
+}
+if (adminClueShell){
+  adminClueShell.addEventListener('click', evt=>{
+    const btn = evt.target.closest('.subtab-btn');
+    if (!btn) return;
+    const filter = btn.dataset.filter || 'all';
+    if (filter === adminClueFilter.current) return;
+    activateAdminClueFilter(filter);
+    renderAdminClues();
+  });
+  activateAdminClueFilter(adminClueFilter.current);
 }
 
 const adminSession = {
@@ -587,10 +619,33 @@ function renderAdminClues(){
   const clues = adminClues();
   const box = $('adminCluesBox');
   if (!box) return;
-  const entries = Object.entries(clues);
-  if (!entries.length){ box.innerHTML='<div class="muted">No clues seeded.</div>'; return; }
+  const entries = Object.entries(clues||{});
+  const hasClues = entries.length > 0;
+  if (adminClueShell){
+    if (!hasClues){
+      adminClueShell.classList.add('disabled');
+      if (adminClueFilter.current !== 'all') activateAdminClueFilter('all');
+    }else{
+      adminClueShell.classList.remove('disabled');
+      activateAdminClueFilter(adminClueFilter.current);
+    }
+  }
+  if (!hasClues){
+    box.innerHTML='<div class="muted">No clues seeded.</div>';
+    return;
+  }
+  const filter = adminClueFilter.current || 'all';
+  const filtered = entries.filter(([id])=>{
+    if (filter === 'all') return true;
+    const letter = (id||'').trim().charAt(0).toUpperCase();
+    return letter === filter;
+  });
+  if (!filtered.length){
+    box.innerHTML = '<div class="muted">No clues in this category.</div>';
+    return;
+  }
   box.innerHTML = '';
-  entries.sort((a,b)=> a[0].localeCompare(b[0])).forEach(([id,c])=>{
+  filtered.sort((a,b)=> a[0].localeCompare(b[0])).forEach(([id,c])=>{
     const el = document.createElement('div');
     el.className='parchment';
     el.innerHTML = `
@@ -708,8 +763,71 @@ $('clearRolesBtn').onclick = async ()=>{
   $('specialStatus').textContent = 'All special roles cleared.';
   await checkWinConditions(room, popup);
 };
+$('randomRolesBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  const room = currentAdminRoom();
+  const claimed = buildClaimedPlayers();
+  const roles = ['Elder Vampire','Lesser Vampire','Thrall','Night Warden','Mirrorcloak','Gravespeaker'];
+  if (claimed.length < roles.length){
+    $('specialStatus').textContent = `Need at least ${roles.length} claimed players to assign all roles.`;
+    return;
+  }
+  if (!window.confirm('Randomly assign all special roles? This will overwrite existing assignments.')) return;
+  const users = adminUsers();
+  const updates = {};
+  Object.keys(users || {}).forEach(uid=>{
+    updates[`rooms/${room}/users/${uid}/specialRole`] = null;
+  });
+  const pool = [...claimed];
+  for (let i = pool.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const assignedMap = new Map();
+  roles.forEach((role, idx)=>{
+    const entry = pool[idx];
+    if (entry){
+      updates[`rooms/${room}/users/${entry.uid}/specialRole`] = role;
+      assignedMap.set(role, entry.uid);
+    }
+  });
+  const elderUid = assignedMap.get('Elder Vampire') || null;
+  updates[`rooms/${room}/state/originalElderUid`] = elderUid || null;
+  updates[`rooms/${room}/state/ascendedElderUid`] = null;
+  await db.ref().update(updates);
+  $('specialStatus').textContent = 'Special roles randomly assigned.';
+  await checkWinConditions(room, popup);
+};
 $('markDeadBtn').onclick = ()=> toggleDead(true);
 $('markAliveBtn').onclick = ()=> toggleDead(false);
+$('reviveAllBtn').onclick = async ()=>{
+  if (!ADMIN_OK) return;
+  if (!window.confirm('Mark every character and player as alive?')) return;
+  const room = currentAdminRoom();
+  const users = adminUsers();
+  const chars = adminChars();
+  const updates = {};
+  Object.entries(users || {}).forEach(([uid, u])=>{
+    if (u.dead){
+      updates[`rooms/${room}/users/${uid}/dead`] = false;
+    }
+    if (u.charId && chars && chars[u.charId] && chars[u.charId].dead){
+      updates[`rooms/${room}/characters/${u.charId}/dead`] = false;
+    }
+  });
+  Object.entries(chars || {}).forEach(([cid, c])=>{
+    if (c.dead){
+      updates[`rooms/${room}/characters/${cid}/dead`] = false;
+    }
+  });
+  if (!Object.keys(updates).length){
+    popup('All Alive', 'Everyone is already marked alive.');
+    return;
+  }
+  await db.ref().update(updates);
+  await checkWinConditions(room, popup);
+  popup('All Alive', 'Every character is now marked alive.');
+};
 
 $('startGameBtn').onclick = async ()=>{
   if (!ADMIN_OK) return;

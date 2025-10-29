@@ -80,14 +80,6 @@
           <section id="tab-clues" class="tab-panel">
             <div class="card">
               <h3 class="kicker">Revealed Clues</h3>
-              <div class="subtab-shell" id="clueTabShell">
-                <div class="subtab-bar">
-                  <button class="subtab-btn active" data-filter="all">All</button>
-                  <button class="subtab-btn" data-filter="E">Elder (E)</button>
-                  <button class="subtab-btn" data-filter="L">Lesser (L)</button>
-                  <button class="subtab-btn" data-filter="D">Red Herring (D)</button>
-                </div>
-              </div>
               <div id="cluesList" class="grid" style="gap:14px"></div>
             </div>
           </section>
@@ -176,9 +168,6 @@ const tabLock = { target: null };
 const playerTabBar = $('playerTabBar');
 const tabButtons = playerTabBar ? [...playerTabBar.querySelectorAll('.tab-btn')] : [];
 const tabPanels = ()=> [...document.querySelectorAll('.tab-panel')];
-const clueTabState = { filter: 'all' };
-const clueTabShell = $('clueTabShell');
-const clueTabButtons = clueTabShell ? [...clueTabShell.querySelectorAll('.subtab-btn')] : [];
 function applyTabLockStyles(){
   tabButtons.forEach(btn=>{
     const target = btn.getAttribute('data-target');
@@ -213,25 +202,6 @@ function setTabLock(targetId){
   if (tabLock.target){
     activateTab(tabLock.target);
   }
-}
-function activateClueFilter(filterId){
-  const normalized = filterId || 'all';
-  clueTabState.filter = normalized;
-  clueTabButtons.forEach(btn=>{
-    const btnFilter = btn.dataset.filter || 'all';
-    btn.classList.toggle('active', btnFilter === normalized);
-  });
-}
-if (clueTabShell){
-  clueTabShell.addEventListener('click', (evt)=>{
-    const btn = evt.target.closest('.subtab-btn');
-    if (!btn) return;
-    const filter = btn.dataset.filter || 'all';
-    if (filter === clueTabState.filter) return;
-    activateClueFilter(filter);
-    renderClues(activeSession.data.clues);
-  });
-  activateClueFilter(clueTabState.filter);
 }
 if (playerTabBar){
   playerTabBar.addEventListener('click', (evt)=>{
@@ -426,6 +396,8 @@ async function renderActiveWithData(){
   const elderTargetsBox = $('elderTargetsBox');
   const elderTargetsList = $('elderTargetsList');
   const tabShell = document.querySelector('.tab-shell');
+  const todoListEl = $('todoList');
+  const objectiveCard = todoListEl ? todoListEl.closest('.card') : null;
 
   const isDead = me ? userIsDead(me, chars) : false;
   $('charHeader').textContent = me ? `Your Character${isDead ? ' (Dead)' : ''}` : 'Your Character';
@@ -479,7 +451,8 @@ async function renderActiveWithData(){
     }
     if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
     if (elderTargetsBox) elderTargetsBox.hidden = true;
-    $('todoList').innerHTML = '<div class="muted">Eliminated players cannot complete objectives.</div>';
+    if (objectiveCard) objectiveCard.hidden = false;
+    if (todoListEl) todoListEl.innerHTML = '<div class="muted">Eliminated players cannot complete objectives.</div>';
     return;
   }
 
@@ -493,7 +466,8 @@ async function renderActiveWithData(){
     }
     if (liveObjectiveBlock) liveObjectiveBlock.hidden = true;
     if (elderTargetsBox) elderTargetsBox.hidden = true;
-    $('todoList').innerHTML = '<div class="muted">Objectives unlock when the host starts the round.</div>';
+    if (objectiveCard) objectiveCard.hidden = false;
+    if (todoListEl) todoListEl.innerHTML = '<div class="muted">Objectives unlock when the host starts the round.</div>';
     renderPlayerVoting(room, myUid, state, users, chars, activeSession.canVote, me);
     return;
   }
@@ -503,19 +477,27 @@ async function renderActiveWithData(){
   activeSession.canVote = true;
   setTabLock(voting.open ? 'tab-justice' : null);
 
-  const toShow = Math.min(me.tasks?.length||0, state.round||1);
-  const tasks = (me.tasks||[]).slice(0, toShow);
-  $('todoList').innerHTML = tasks.map((t,i)=>`
-    <label class="todo ${t.done?'done':''}">
-      <input type="checkbox" data-ix="${i}" ${t.done?'checked':''}/>
-      <span>${t.text}</span>
-    </label>`).join('') || '<div class="muted">No tasks.</div>';
-  [...$('todoList').querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
-    cb.addEventListener('change', async (e)=>{
-      const ix = Number(e.target.getAttribute('data-ix'));
-      await db.ref(`rooms/${room}/users/${myUid}/tasks/${ix}/done`).set(e.target.checked);
-    });
-  });
+  const isActiveElder = me.specialRole === 'Elder Vampire';
+  if (objectiveCard) objectiveCard.hidden = isActiveElder;
+  if (todoListEl){
+    if (isActiveElder){
+      todoListEl.innerHTML = '<div class="muted">As the Elder Vampire, your focus is on the marked targets alone.</div>';
+    }else{
+      const toShow = Math.min(me.tasks?.length||0, state.round||1);
+      const tasks = (me.tasks||[]).slice(0, toShow);
+      todoListEl.innerHTML = tasks.map((t,i)=>`
+        <label class="todo ${t.done?'done':''}">
+          <input type="checkbox" data-ix="${i}" ${t.done?'checked':''}/>
+          <span>${t.text}</span>
+        </label>`).join('') || '<div class="muted">No tasks.</div>';
+      [...todoListEl.querySelectorAll('input[type="checkbox"]')].forEach(cb=>{
+        cb.addEventListener('change', async (e)=>{
+          const ix = Number(e.target.getAttribute('data-ix'));
+          await db.ref(`rooms/${room}/users/${myUid}/tasks/${ix}/done`).set(e.target.checked);
+        });
+      });
+    }
+  }
 
   if (notesBox) notesBox.value = store.get(`mb_notes_${room}_${name}`)||'';
   renderPlayerVoting(room, myUid, state, users, chars, activeSession.canVote, me);
@@ -549,30 +531,9 @@ function renderClues(clues){
   const revealed = Object.entries(clues||{}).filter(([id,c])=> c && c.revealed);
   if (!revealed.length){
     box.innerHTML = '<div class="muted">No clues revealed yet.</div>';
-    if (clueTabShell){
-      clueTabShell.classList.add('disabled');
-      activateClueFilter('all');
-    }
     return;
   }
-  if (clueTabShell){
-    clueTabShell.classList.remove('disabled');
-    activateClueFilter(clueTabState.filter);
-  }
-
-  const filter = clueTabState.filter || 'all';
-  const filtered = revealed.filter(([id])=>{
-    if (filter === 'all') return true;
-    const letter = (id || '').trim().charAt(0).toUpperCase();
-    return letter === filter;
-  });
-
-  if (!filtered.length){
-    box.innerHTML = '<div class="muted">No clues in this category yet.</div>';
-    return;
-  }
-
-  filtered.forEach(([id,c])=>{
+  revealed.sort((a,b)=> a[0].localeCompare(b[0])).forEach(([id,c])=>{
     const el = document.createElement('article');
     el.className = 'parchment';
     el.innerHTML = `<div class="tag">Clue ${id}</div><h4>${c.title||'(untitled)'}</h4><div>${c.body||''}</div>`;

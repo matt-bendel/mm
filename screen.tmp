@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Moonlit Bandanas - Screen</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body class="screen-body">
+<div class="wrap screen-wrap">
+  <section id="screen-join" class="panel screen-panel">
+    <div class="grid">
+      <div><label>Room Code</label><input id="screenRoom" placeholder="e.g., REVEL-2025" /></div>
+      <div><label>Room Password</label><input id="screenPass" type="password" placeholder="Room password" /></div>
+      <div class="row">
+        <button class="btn" id="screenConnectBtn">Connect</button>
+        <div id="screenStatus" class="muted"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-main" class="screen-panel" hidden>
+    <div class="screen-stage">
+      <div id="cardCloud" class="card-cloud empty">
+        <div class="card-placeholder muted">Waiting for players...</div>
+      </div>
+      <div id="centerStage" class="center-stage" data-state="welcome">
+        <div id="centerTitle" class="center-title">Welcome to Moonlit Bandanas</div>
+        <div id="centerTimer" class="center-timer"></div>
+        <div id="centerBody" class="center-body">Waiting for the host to begin the night.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="./app.js"></script>
+<script>
+MB.initFirebase();
+const db = MB.getDB();
+const {$, verifyRoomPassword, userIsDead} = MB;
+
+const DEFAULT_ROUND_DURATION = 20 * 60 * 1000;
+
+const screenSession = {
+  room: '',
+  listeners: [],
+  data: {state:null, users:null, characters:null},
+  cardOrder: {}
+};
+
+let roundTimerInterval = null;
+let voteTimerInterval = null;
+
+function baseCharName(str){
+  const val = (str||'').trim();
+  const separators = [' \u2014 ', ' \u2013 ', ' - '];
+  for (const sep of separators){
+    const ix = val.indexOf(sep);
+    if (ix !== -1) return val.slice(0, ix).trim();
+  }
+  return val;
+}
+
+function formatTime(ms){
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const mins = String(Math.floor(total / 60)).padStart(2,'0');
+  const secs = String(total % 60).padStart(2,'0');
+  return `${mins}:${secs}`;
+}
+
+function detachListeners(){
+  screenSession.listeners.forEach(({ref, handler})=> ref.off('value', handler));
+  screenSession.listeners = [];
+}
+
+function ensureListeners(room){
+  if (screenSession.room === room) return;
+  detachListeners();
+  screenSession.room = room;
+  screenSession.cardOrder = {};
+  const add = (path, key)=>{
+    const ref = db.ref(`rooms/${room}/${path}`);
+    const handler = snap=>{
+      const val = snap.exists()? snap.val() : null;
+      if (key === 'state') screenSession.data.state = val || {};
+      if (key === 'users') screenSession.data.users = val || {};
+      if (key === 'characters') screenSession.data.characters = val || {};
+      renderScreen();
+    };
+    ref.on('value', handler);
+    screenSession.listeners.push({ref, handler});
+  };
+  add('state','state');
+  add('users','users');
+  add('characters','characters');
+  renderScreen();
+}
+
+function renderCharacters(){
+  const board = $('cardCloud');
+  if (!board) return;
+  const chars = screenSession.data.characters || {};
+  const users = screenSession.data.users || {};
+  const entries = Object.entries(chars);
+  const userByChar = {};
+  Object.entries(users).forEach(([uid,u])=>{
+    if (u && u.charId) userByChar[u.charId] = u;
+  });
+  const claimed = entries.filter(([id])=> userByChar[id]);
+  if (!claimed.length){
+    board.classList.add('empty');
+    board.innerHTML = '<div class="card-placeholder muted">Waiting for players...</div>';
+    return;
+  }
+  board.classList.remove('empty');
+  claimed.forEach(([id])=>{
+    if (!screenSession.cardOrder[id]) screenSession.cardOrder[id] = Math.random();
+  });
+  const ordered = claimed.slice().sort((a,b)=> (screenSession.cardOrder[a[0]]||0) - (screenSession.cardOrder[b[0]]||0));
+  board.innerHTML = ordered.map(([id,char])=>{
+    const player = userByChar[id];
+    const dead = userIsDead(player, chars) || !!char.dead;
+    const classes = ['character-card','claimed'];
+    if (dead) classes.push('dead');
+    return `<div class="${classes.join(' ')}">
+      <div class="char-name${dead ? ' dead-name' : ''}">${baseCharName(char.name)}</div>
+      <div class="char-player${dead ? ' dead-name' : ''}">${player.name}</div>
+    </div>`;
+  }).join('');
+}
+
+function stopRoundTimer(showZero=false){
+  const display = $('centerTimer');
+  if (roundTimerInterval){
+    clearInterval(roundTimerInterval);
+    roundTimerInterval = null;
+  }
+  if (!display) return;
+  if (showZero){
+    display.textContent = '00:00';
+    display.classList.add('visible');
+  }else if (!voteTimerInterval){
+    display.textContent = '';
+    display.classList.remove('visible');
+  }
+}
+
+function stopVoteTimer(showZero=false){
+  const display = $('centerTimer');
+  if (voteTimerInterval){
+    clearInterval(voteTimerInterval);
+    voteTimerInterval = null;
+  }
+  if (!display) return;
+  if (showZero){
+    display.textContent = '00:00';
+    display.classList.add('visible');
+  }else if (!roundTimerInterval){
+    display.textContent = '';
+    display.classList.remove('visible');
+  }
+}
+
+function startRoundTimer(startMs, duration){
+  const display = $('centerTimer');
+  if (!display) return;
+  if (!startMs){
+    stopRoundTimer(false);
+    return;
+  }
+  if (roundTimerInterval){
+    clearInterval(roundTimerInterval);
+    roundTimerInterval = null;
+  }
+  const endTs = startMs + (duration || DEFAULT_ROUND_DURATION);
+  const tick = ()=>{
+    const remaining = Math.max(0, endTs - Date.now());
+    display.textContent = formatTime(remaining);
+    if (remaining <= 0 && roundTimerInterval){
+      clearInterval(roundTimerInterval);
+      roundTimerInterval = null;
+      display.textContent = '00:00';
+    }
+  };
+  display.classList.add('visible');
+  tick();
+  roundTimerInterval = setInterval(tick, 1000);
+}
+
+function startVoteTimer(endTs){
+  const display = $('centerTimer');
+  if (!display) return;
+  if (!endTs){
+    stopVoteTimer(false);
+    return;
+  }
+  if (voteTimerInterval){
+    clearInterval(voteTimerInterval);
+    voteTimerInterval = null;
+  }
+  const tick = ()=>{
+    const remaining = Math.max(0, endTs - Date.now());
+    display.textContent = formatTime(remaining);
+    if (remaining <= 0 && voteTimerInterval){
+      clearInterval(voteTimerInterval);
+      voteTimerInterval = null;
+      display.textContent = '00:00';
+    }
+  };
+  display.classList.add('visible');
+  tick();
+  voteTimerInterval = setInterval(tick, 1000);
+}
+
+function renderCenter(){
+  const stage = $('centerStage');
+  const titleEl = $('centerTitle');
+  const timerEl = $('centerTimer');
+  const bodyEl = $('centerBody');
+  if (!stage || !titleEl || !timerEl || !bodyEl) return;
+
+  const state = screenSession.data.state || {};
+  const voting = state.voting || {};
+  const lastPopup = state.lastPopup || null;
+  const roundDuration = state.roundTimerDuration || DEFAULT_ROUND_DURATION;
+  const roundEndsAt = state.roundTimerStartedAt ? state.roundTimerStartedAt + roundDuration : null;
+
+  if (!state.gameStarted){
+    stopVoteTimer(false);
+    stopRoundTimer(false);
+    stage.dataset.state = 'welcome';
+    titleEl.textContent = 'Welcome to Moonlit Bandanas';
+    bodyEl.textContent = 'Waiting for the host to begin the night.';
+    return;
+  }
+
+  if (voting.open){
+    stopRoundTimer(false);
+    stage.dataset.state = 'vote';
+    titleEl.textContent = 'Mob Justice';
+    bodyEl.textContent = 'Debate quickly and cast your vote.';
+    startVoteTimer(voting.endsAt || (Date.now() + 5 * 60 * 1000));
+    return;
+  }
+
+  if (voting.closed){
+    stopVoteTimer(false);
+    stopRoundTimer(false);
+    const victory = lastPopup && /victory|triumph/i.test(((lastPopup.title||'') + (lastPopup.html||lastPopup.body||'') ).toLowerCase());
+    stage.dataset.state = victory ? 'victory' : 'results';
+    titleEl.textContent = lastPopup?.title || (victory ? 'Game Over' : 'Mob Justice Results');
+    bodyEl.innerHTML = lastPopup ? (lastPopup.html || lastPopup.body || '') : 'Awaiting the next announcement.';
+    return;
+  }
+
+  stopVoteTimer(false);
+  stage.dataset.state = 'round';
+  titleEl.textContent = `Round ${state.round || 1}`;
+  if (roundEndsAt && Date.now() < roundEndsAt){
+    bodyEl.textContent = 'Stay sharp and gather clues before time expires.';
+    startRoundTimer(state.roundTimerStartedAt, roundDuration);
+  }else if (roundEndsAt){
+    bodyEl.textContent = 'Round timer complete. Await the host.';
+    stopRoundTimer(true);
+  }else{
+    bodyEl.textContent = 'Waiting for the host to start the round timer.';
+    stopRoundTimer(false);
+  }
+}
+
+function renderScreen(){
+  renderCharacters();
+  renderCenter();
+}
+
+$('screenConnectBtn').onclick = async ()=>{
+  const room = ($('screenRoom').value || '').trim().toUpperCase();
+  const pass = ($('screenPass').value || '').trim();
+  const status = $('screenStatus');
+  if (!room || !pass){
+    status.textContent = 'Enter room code and password.';
+    return;
+  }
+  status.textContent = 'Connecting...';
+  try{
+    const ok = await verifyRoomPassword(room, pass);
+    if (!ok){ status.textContent = 'Incorrect password.'; return; }
+    ensureListeners(room);
+    $('screen-join').hidden = true;
+    $('screen-main').hidden = false;
+    status.textContent = '';
+  }catch(err){
+    status.textContent = 'Unable to connect: ' + err.message;
+  }
+};
+</script>
+</body>
+</html>

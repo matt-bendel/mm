@@ -9,7 +9,7 @@
 <body>
 <header>
   <div class="title">Moonlit Bandanas</div>
-  <div class="navlinks"><a href="./index.html">Join</a> &bull; <a href="./create.html">Create</a></div>
+  <div class="navlinks"><a href="./index.html">Join</a> &bull; <a href="./create.html">Create</a> &bull; <a href="./screen.html">Screen</a></div>
 </header>
 
 <div class="wrap">
@@ -187,6 +187,7 @@ let ADMIN_OK = false;
 let voteTimer = null;
 let voteIdleTimer = null;
 let lastVoteSignature = '';
+const ROUND_DURATION = 20*60*1000;
 
 const adminTabState = { current: 'admin-tab-people' };
 const adminTabBar = $('adminTabBar');
@@ -396,7 +397,7 @@ $('adminAuthBtn').onclick = async ()=>{
 
 function mutateState(room, mutator){
   return db.ref(`rooms/${room}/state`).transaction(current=>{
-    const base = current || { gameStarted:false, round:1, voting:{ open:false, closed:false, candidates:null, votes:null, endsAt:null } };
+    const base = current || { gameStarted:false, round:1, roundTimerStartedAt:null, roundTimerDuration:ROUND_DURATION, voting:{ open:false, closed:false, candidates:null, votes:null, endsAt:null } };
     if (!base.voting) base.voting = { open:false, closed:false, candidates:null, votes:null, endsAt:null };
     const next = mutator({...base});
     return next;
@@ -837,10 +838,12 @@ $('startGameBtn').onclick = async ()=>{
     if (!state.round) state.round = 1;
     state.gameStarted = true;
     state.voting = { open:false, closed:false, candidates:null, votes:null, endsAt:null };
+    state.roundTimerStartedAt = Date.now();
+    state.roundTimerDuration = ROUND_DURATION;
     return state;
   });
   await ensureElderTargets(room);
-  popup('Game Started', 'Players now see objectives, notes, and Mob Justice.');
+  popup('Game Started', 'Players now see objectives and Mob Justice.');
 };
 $('stopGameBtn').onclick = async ()=>{
   if (!ADMIN_OK) return;
@@ -849,6 +852,8 @@ $('stopGameBtn').onclick = async ()=>{
   await mutateState(room, state=>{
     state.gameStarted = false;
     state.voting = { open:false, closed:false, candidates:null, votes:null, endsAt:null };
+    state.roundTimerStartedAt = null;
+    state.roundTimerDuration = ROUND_DURATION;
     return state;
   });
   popup('Back to Waiting', 'Players now see only character and role info.');
@@ -861,6 +866,8 @@ $('nextRoundBtn').onclick = async ()=>{
     const next = (state.round||1) + 1;
     state.round = next;
     state.voting = { open:false, closed:false, candidates:null, votes:null, endsAt:null };
+    state.roundTimerStartedAt = Date.now();
+    state.roundTimerDuration = ROUND_DURATION;
     return state;
   });
   await checkWinConditions(room, popup);
@@ -873,6 +880,8 @@ $('resetRoundBtn').onclick = async ()=>{
     state.round = 0;
     state.gameStarted = false;
     state.voting = { open:false, closed:false, candidates:null, votes:null, endsAt:null };
+    state.roundTimerStartedAt = null;
+    state.roundTimerDuration = ROUND_DURATION;
     return state;
   });
   await checkWinConditions(room, popup);

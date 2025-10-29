@@ -272,7 +272,7 @@ const MB = (function(){
   
     async function getState(room){
       const snap = await getDB().ref(`rooms/${room}/state`).get();
-      return snap.exists()? snap.val(): {gameStarted:false, round:1, voting:{open:false,closed:false,candidates:null,votes:null,endsAt:null}};
+      return snap.exists()? snap.val(): {gameStarted:false, round:1, roundTimerStartedAt:null, roundTimerDuration:20*60*1000, voting:{open:false,closed:false,candidates:null,votes:null,endsAt:null}};
     }
   
     // Role details + visibility
@@ -329,26 +329,27 @@ const MB = (function(){
 
     // Voting helpers
     // Voting helpers
-    function updateCountdownPill(pillEl, endsAt){
+    function updateCountdownPill(pillEl, endsAt, label){
       if (!pillEl) return;
       if (pillEl.__mbTimer){ clearInterval(pillEl.__mbTimer); pillEl.__mbTimer = null; }
-
-      
+      const textLabel = label || 'Timer';
+      if (!endsAt){
+        pillEl.textContent = `${textLabel}: --`;
+        return;
+      }
       const tick = ()=>{
-        const ms = Math.max(0, (endsAt||0) - Date.now());
+        const ms = Math.max(0, endsAt - Date.now());
         const m = Math.floor(ms/60000);
         const s = Math.floor((ms%60000)/1000).toString().padStart(2,'0');
-        pillEl.textContent = endsAt ? `Timer: ${m}:${s}` : 'Timer: --';
+        pillEl.textContent = `${textLabel}: ${m}:${s}`;
         if (ms<=0 && pillEl.__mbTimer){
           clearInterval(pillEl.__mbTimer);
           pillEl.__mbTimer = null;
         }
       };
 
+      pillEl.__mbTimer = setInterval(tick, 1000);
       tick();
-      if (endsAt){
-        pillEl.__mbTimer = setInterval(tick, 1000);
-      }
     }
 
     function computeTally(users, chars, votes){

@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Moonlit Bandanas — Create Room</title>
+<title>Moonlit Bandanas - Create Room</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;600&family=Crimson+Text:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <header>
   <div class="title">Moonlit Bandanas</div>
-  <div class="navlinks"><a href="./index.html">Join</a> · <a href="./admin.html">Admin</a></div>
+  <div class="navlinks"><a href="./index.html">Join</a> &bull; <a href="./admin.html">Admin</a> &bull; <a href="./screen.html">Screen</a></div>
 </header>
 
 <div class="wrap">
@@ -17,7 +17,7 @@
     <div class="grid grid-2">
       <div>
         <label>Room Code</label><input id="roomCode" placeholder="e.g., REVEL-2025" />
-        <div class="muted">Letters/numbers/dashes (3–30 chars).</div>
+        <div class="muted">Letters/numbers/dashes (3-30 chars).</div>
         <label style="margin-top:12px">Room Password</label><input id="roomPassword" type="password" placeholder="Password players must enter" />
         <div class="muted">Stored as SHA-256 hash.</div>
         <label style="margin-top:12px">Admin Password (secret)</label><input id="roomAdminPassword" type="password" placeholder="Required to unlock Admin" />
@@ -36,19 +36,19 @@
   </section>
 
   <nav class="navlinks" style="margin-top:6px">
-    <a href="#" id="tab-characters" aria-selected="true">Characters</a> ·
-    <a href="#" id="tab-goals" aria-selected="false">Goals</a> ·
+    <a href="#" id="tab-characters" aria-selected="true">Characters</a> &bull;
+    <a href="#" id="tab-goals" aria-selected="false">Goals</a> &bull;
     <a href="#" id="tab-clues" aria-selected="false">Clues</a>
   </nav>
 
   <section id="panel-characters" class="panel">
-    <label>Character Pool (name — biography, one per line)</label>
+    <label>Character Pool (name | ties | quirk | secret | round goals...)</label>
     <textarea id="rolePool"></textarea>
     <div class="row" style="margin-top:8px"><button class="btn secondary" id="fillDefaultsBtn">Reset To Default Characters</button></div>
   </section>
 
   <section id="panel-goals" class="panel" hidden>
-    <label>Default Goals (one per line — shown one per round)</label>
+    <label>Default Goals (one per line - shown one per round)</label>
     <textarea id="goalsBox"></textarea>
     <div class="muted">Players see one new goal each round (including the first live round).</div>
   </section>
@@ -143,9 +143,9 @@ $('createRoomBtn').onclick = async ()=>{
         dead:false
       };
     }else{
-      const [name, ...rest] = line.split('—');
+      const [name, ...rest] = line.split(' - ');
       const nm = (name||'').trim();
-      const desc = (rest.join('—')||'').trim() || null;
+      const desc = (rest.join(' - ')||'').trim() || null;
       chars[id] = {name: nm, desc, claimedBy:null, claimedAt:null, dead:false};
     }
   });
@@ -157,7 +157,7 @@ $('createRoomBtn').onclick = async ()=>{
   // Clues defaults
   const clues = {}; DEFAULT_CLUES.forEach(c=> clues[c.id]={title:c.title, body:c.body, revealed:false});
 
-  const state = { gameStarted:false, round: 1, voting:{ open:false, closed:false, candidates:null, votes:null, endsAt:null } };
+  const state = { gameStarted:false, round: 1, roundTimerStartedAt:null, roundTimerDuration:20*60*1000, voting:{ open:false, closed:false, candidates:null, votes:null, endsAt:null } };
   try{
     await db.ref(`rooms/${code}`).set({
       passHash, adminHash, createdAt: Date.now(),

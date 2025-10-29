@@ -161,6 +161,7 @@ const tabLock = { target: null };
 const playerTabBar = $('playerTabBar');
 const tabButtons = playerTabBar ? [...playerTabBar.querySelectorAll('.tab-btn')] : [];
 const tabPanels = ()=> [...document.querySelectorAll('.tab-panel')];
+let clueAlertTimer = null;
 function applyTabLockStyles(){
   tabButtons.forEach(btn=>{
     const target = btn.getAttribute('data-target');
@@ -169,11 +170,35 @@ function applyTabLockStyles(){
     btn.classList.toggle('locked', locked);
   });
 }
+function clearClueAlert(){
+  const btn = tabButtons.find(b=> b.dataset.target === 'tab-clues');
+  if (btn) btn.classList.remove('clue-alert');
+  if (clueAlertTimer){
+    clearTimeout(clueAlertTimer);
+    clueAlertTimer = null;
+  }
+}
+function flagCluesTab(){
+  if (tabState.current === 'tab-clues'){
+    clearClueAlert();
+    return;
+  }
+  const btn = tabButtons.find(b=> b.dataset.target === 'tab-clues');
+  if (!btn) return;
+  btn.classList.add('clue-alert');
+  if (clueAlertTimer){
+    clearTimeout(clueAlertTimer);
+  }
+  clueAlertTimer = setTimeout(()=> clearClueAlert(), 20000);
+}
 function activateTab(targetId){
   if (tabLock.target && targetId !== tabLock.target){
     targetId = tabLock.target;
   }
   tabState.current = targetId;
+  if (targetId === 'tab-clues'){
+    clearClueAlert();
+  }
   tabButtons.forEach(btn=>{
     const target = btn.getAttribute('data-target');
     const active = target === targetId;
@@ -219,7 +244,9 @@ const activeSession = {
   listeners: [],
   data: { state: null, users: null, characters: null, clues: null },
   lastPopupTs: 0,
-  canVote: false
+  canVote: false,
+  seenClues: new Set(),
+  cluesBootstrapped: false
 };
 
 function resetActiveData(){
@@ -228,6 +255,9 @@ function resetActiveData(){
   activeSession.data.characters = null;
   activeSession.data.clues = null;
   activeSession.lastPopupTs = 0;
+  activeSession.seenClues = new Set();
+  activeSession.cluesBootstrapped = false;
+  clearClueAlert();
 }
 
 function detachActiveListeners(){
@@ -430,6 +460,7 @@ async function renderActiveWithData(){
     if (tabShell) tabShell.hidden = true;
     renderClues(clues);
     activeSession.canVote = false;
+    clearClueAlert();
     return;
   }
 
@@ -461,6 +492,7 @@ async function renderActiveWithData(){
     if (elderTargetsBox) elderTargetsBox.hidden = true;
     if (objectiveCard) objectiveCard.hidden = false;
     if (todoListEl) todoListEl.innerHTML = '<div class="muted">Eliminated players cannot complete objectives.</div>';
+    clearClueAlert();
     return;
   }
 
@@ -476,6 +508,7 @@ async function renderActiveWithData(){
     if (elderTargetsBox) elderTargetsBox.hidden = true;
     if (objectiveCard) objectiveCard.hidden = false;
     if (todoListEl) todoListEl.innerHTML = '<div class="muted">Objectives unlock when the host starts the round.</div>';
+    clearClueAlert();
     renderPlayerVoting(room, myUid, state, users, chars, activeSession.canVote, me);
     return;
   }
@@ -535,17 +568,52 @@ function renderClues(clues){
   const box = $('cluesList');
   if (!box) return;
   box.innerHTML = '';
+  const wasBootstrapped = activeSession.cluesBootstrapped;
   const revealed = Object.entries(clues||{}).filter(([id,c])=> c && c.revealed);
   if (!revealed.length){
     box.innerHTML = '<div class="muted">No clues revealed yet.</div>';
+    activeSession.seenClues = new Set();
+    if (!activeSession.cluesBootstrapped){
+      activeSession.cluesBootstrapped = true;
+    }
     return;
   }
-  revealed.sort((a,b)=> a[0].localeCompare(b[0])).forEach(([id,c])=>{
+  const sorted = revealed.slice().sort((a,b)=> a[0].localeCompare(b[0]));
+  const previouslySeen = activeSession.seenClues || new Set();
+  const nextSeen = new Set();
+  const newlyRevealed = [];
+  sorted.forEach(([id,c])=>{
+    if (wasBootstrapped && !previouslySeen.has(id)){
+      newlyRevealed.push({id, data:c});
+    }
+    nextSeen.add(id);
     const el = document.createElement('article');
     el.className = 'parchment';
     el.innerHTML = `<h4>${c.title||'(untitled)'}</h4><div>${c.body||''}</div>`;
     box.appendChild(el);
   });
+  activeSession.seenClues = nextSeen;
+  if (!activeSession.cluesBootstrapped){
+    activeSession.cluesBootstrapped = true;
+  }
+  if (wasBootstrapped && newlyRevealed.length){
+    notifyNewClues(newlyRevealed);
+  }
+}
+
+function notifyNewClues(entries){
+  if (!entries.length) return;
+  const count = entries.length;
+  const title = count > 1 ? 'New Clues Revealed' : 'New Clue Revealed';
+  const listItems = entries.map(({data})=>{
+    const header = data?.title ? data.title : '(untitled)';
+    return `<li><b>${header}</b></li>`;
+  }).join('');
+  const intro = count > 1 ? 'Multiple new clues have been uncovered.' : 'A fresh clue has been uncovered.';
+  const closing = count > 1 ? 'Open the Clues tab to review them.' : 'Open the Clues tab to read it.';
+  const body = `<p>${intro}</p><ul>${listItems}</ul><p>${closing}</p>`;
+  popup(title, body);
+  flagCluesTab();
 }
 
 function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){

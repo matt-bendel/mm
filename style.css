@@ -58,6 +58,11 @@
   .tab-btn{background:#15151a; border:1px solid #27272f; color:#d6d6dc; padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600}
   .tab-btn.active{background:linear-gradient(180deg,var(--accent2),var(--accent)); border-color:var(--accent); color:#fff; box-shadow:0 8px 22px rgba(224,30,55,.25)}
   .tab-btn.locked{opacity:.4; cursor:not-allowed; pointer-events:none}
+  .tab-btn.clue-alert{border-color:var(--accent); box-shadow:0 0 0 2px rgba(224,30,55,.4), 0 0 18px rgba(224,30,55,.35); color:#fff; animation:tabPulse 1.6s ease-in-out infinite;}
+  @keyframes tabPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(224,30,55,.45),0 0 18px rgba(224,30,55,.35);}
+    50%{box-shadow:0 0 0 6px rgba(224,30,55,.1),0 0 26px rgba(224,30,55,.55);}
+  }
   .tab-panels{margin-top:12px; display:grid; gap:12px}
   .tab-panel{display:none}
   .tab-panel.active{display:block}
@@ -76,9 +81,9 @@
   .screen-panel{background:transparent; border:none; box-shadow:none; padding:0;}
   .screen-stage{position:relative; min-height:78vh;}
   .card-cloud{display:flex; flex-wrap:wrap; gap:22px; padding:140px 60px; justify-content:center; align-items:center; align-content:center; position:relative;}
-  .card-cloud::before{content:''; flex:0 0 clamp(320px, 40vw, 520px); height:clamp(260px, 38vh, 420px); margin:20px; pointer-events:none;}
-  .card-cloud.empty{display:flex; align-items:center; justify-content:center; padding:100px 40px;}
-  .card-cloud.empty::before{content:none;}
+  .card-cloud.empty{display:flex; align-items:center; justify-content:center; padding:100px 40px; flex-direction:column; flex-wrap:nowrap;}
+  .center-spacer{flex:0 0 clamp(340px, 45vw, 560px); min-height:clamp(260px, 42vh, 460px); pointer-events:none; margin:12px; max-width:100%;}
+  .card-cloud.empty .center-spacer{flex-basis:clamp(280px, 42vw, 480px); min-height:clamp(220px, 36vh, 380px);}
   .card-placeholder{font-size:20px; text-align:center;}
   .character-card{border:1px solid #2a2a30; border-radius:12px; padding:14px 16px; background:#101014; text-align:center; display:grid; gap:6px; min-width:200px;}
   .character-card.claimed{border-color:var(--accent); box-shadow:0 0 20px rgba(224,30,55,.25);}

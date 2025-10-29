@@ -53,6 +53,7 @@ const screenSession = {
 
 let roundTimerInterval = null;
 let voteTimerInterval = null;
+let spacerSyncRaf = null;
 
 function baseCharName(str){
   const val = (str||'').trim();
@@ -112,7 +113,8 @@ function renderCharacters(){
   const claimed = entries.filter(([id])=> userByChar[id]);
   if (!claimed.length){
     board.classList.add('empty');
-    board.innerHTML = '<div class="card-placeholder muted">Waiting for players...</div>';
+    board.innerHTML = '<div class="center-spacer"></div><div class="card-placeholder muted">Waiting for players...</div>';
+    scheduleCenterSpacerSync();
     return;
   }
   board.classList.remove('empty');
@@ -120,7 +122,7 @@ function renderCharacters(){
     if (!screenSession.cardOrder[id]) screenSession.cardOrder[id] = Math.random();
   });
   const ordered = claimed.slice().sort((a,b)=> (screenSession.cardOrder[a[0]]||0) - (screenSession.cardOrder[b[0]]||0));
-  board.innerHTML = ordered.map(([id,char])=>{
+  const cardsHtml = ordered.map(([id,char])=>{
     const player = userByChar[id];
     const dead = userIsDead(player, chars) || !!char.dead;
     const classes = ['character-card','claimed'];
@@ -131,6 +133,8 @@ function renderCharacters(){
       <div class="char-player${dead ? ' dead-name' : ''}">${playerName}</div>
     </div>`;
   }).join('');
+  board.innerHTML = `<div class="center-spacer"></div>${cardsHtml}`;
+  scheduleCenterSpacerSync();
 }
 
 function stopRoundTimer(showZero=false){
@@ -216,6 +220,29 @@ function startVoteTimer(endTs){
   voteTimerInterval = setInterval(tick, 1000);
 }
 
+function scheduleCenterSpacerSync(){
+  if (spacerSyncRaf){
+    cancelAnimationFrame(spacerSyncRaf);
+  }
+  spacerSyncRaf = requestAnimationFrame(()=>{
+    spacerSyncRaf = null;
+    const board = $('cardCloud');
+    const spacer = board ? board.querySelector('.center-spacer') : null;
+    const stage = $('centerStage');
+    if (!board || !spacer || !stage) return;
+    const stageRect = stage.getBoundingClientRect();
+    if (!stageRect.width || !stageRect.height) return;
+    const pad = 80;
+    const boardWidth = board.clientWidth || (stageRect.width + pad);
+    const width = Math.max(320, Math.min(stageRect.width + pad, boardWidth));
+    const height = Math.max(260, stageRect.height + pad);
+    spacer.style.flexBasis = `${width}px`;
+    spacer.style.width = `${width}px`;
+    spacer.style.height = `${height}px`;
+    spacer.style.minHeight = `${height}px`;
+  });
+}
+
 function renderCenter(){
   const stage = $('centerStage');
   const titleEl = $('centerTitle');
@@ -236,6 +263,7 @@ function renderCenter(){
     titleEl.textContent = 'Welcome to Moonlit Bandanas';
     timerEl.textContent = '';
     bodyEl.textContent = 'Waiting for the host to begin the night.';
+    scheduleCenterSpacerSync();
     return;
   }
 
@@ -246,6 +274,7 @@ function renderCenter(){
     timerEl.textContent = '';
     bodyEl.innerHTML = '';
     startVoteTimer(voting.endsAt || (Date.now() + 5 * 60 * 1000));
+    scheduleCenterSpacerSync();
     return;
   }
 
@@ -259,6 +288,7 @@ function renderCenter(){
     titleEl.textContent = popupTitle || (victory ? 'Game Over' : 'Mob Justice Results');
     timerEl.textContent = '';
     bodyEl.innerHTML = popupBody || 'Awaiting the next announcement.';
+    scheduleCenterSpacerSync();
     return;
   }
 
@@ -276,6 +306,7 @@ function renderCenter(){
     bodyEl.textContent = 'Waiting for the host to start the round timer.';
     stopRoundTimer(false);
   }
+  scheduleCenterSpacerSync();
 }
 
 function renderScreen(){
@@ -303,6 +334,7 @@ $('screenConnectBtn').onclick = async ()=>{
     status.textContent = 'Unable to connect: ' + err.message;
   }
 };
+window.addEventListener('resize', scheduleCenterSpacerSync);
 </script>
 </body>
 </html>

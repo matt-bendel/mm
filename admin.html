@@ -71,9 +71,9 @@
                   <div class="divider"></div>
                   <div class="row" style="justify-content:space-between; align-items:center">
                     <h4 style="margin:0">Role Roster</h4>
-                    <button class="btn secondary" id="toggleRoleRosterBtn" data-open="0">Show</button>
+                    <button class="btn secondary" type="button" id="toggleRoleRosterBtn" data-open="0">Show</button>
                   </div>
-                  <div id="roleRosterBox" class="muted collapsible" hidden>No special roles assigned.</div>
+                  <div id="roleRosterBox" class="muted collapsible">No special roles assigned.</div>
                 </div>
               </div>
             </section>
@@ -120,10 +120,10 @@
                 <div class="card">
                   <div class="row" style="justify-content:space-between; align-items:center">
                     <h3 style="margin:0">Marked Targets</h3>
-                    <button class="btn secondary" id="toggleTargetsBtn" data-open="0">Show</button>
+                    <button class="btn secondary" type="button" id="toggleTargetsBtn" data-open="0">Show</button>
                   </div>
                   <div class="muted">Targets are assigned when the game starts and remain fixed.</div>
-                  <div id="elderTargetAdminGrid" class="target-grid collapsible" hidden></div>
+                  <div id="elderTargetAdminGrid" class="target-grid collapsible"></div>
                 </div>
               </div>
             </section>
@@ -1019,14 +1019,18 @@ $('useDefaultCluesBtn').onclick = async ()=>{
     const btn = document.getElementById(btnId);
     const panel = document.getElementById(panelId);
     if (!btn || !panel) return;
+    const initiallyOpen = btn.dataset.open === '1';
+    panel.style.display = initiallyOpen ? '' : 'none';
+    btn.textContent = initiallyOpen ? 'Hide' : 'Show';
+    btn.dataset.open = initiallyOpen ? '1' : '0';
     btn.addEventListener('click', ()=>{
-      const open = btn.dataset.open === '1';
+      const open = panel.style.display !== 'none';
       if (open){
-        panel.hidden = true;
+        panel.style.display = 'none';
         btn.dataset.open = '0';
         btn.textContent = 'Show';
       }else{
-        panel.hidden = false;
+        panel.style.display = '';
         btn.dataset.open = '1';
         btn.textContent = 'Hide';
       }

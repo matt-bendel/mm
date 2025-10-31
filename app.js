@@ -278,12 +278,10 @@ const MB = (function(){
     // Role details + visibility
     function roleDetailsText(role){
       switch(role){
-        case 'Elder Vampire': return "Primary killer: places a napkin over the victims head to eliminate them with a growing kill budget (R1=1, R2=2, R3=3, R4=4). Knows the Lesser Vampire and the Thrall, and may command the Thrall to make one immediate kill. If the Elder dies the Lesser ascends and the Thrall is set free.";
-        case 'Lesser Vampire': return "Heir to the Elder. Knows the Elder and the Thrall. If the Elder is eliminated, the Lesser ascends and inherits any remaining kill budget; otherwise they wield no power and gain no thrall of their own.";
-        case 'Thrall': return "Bound servant to the Elder. Once per game, on command, must immediately carry out a kill. Knows only the Elder. Becomes Lanternfolk if the Elder dies and must never reveal the Elder’s identity while bound.";
+        case 'Elder Vampire': return "Primary killer with a growing budget (R1=1, R2=2, R3=3, R4=4). Knows the Lesser Vampire. If the Elder falls, the Lesser ascends and continues with any remaining allotment.";
+        case 'Lesser Vampire': return "Heir to the Elder. Knows the Elder and inherits any remaining kill budget the moment the Elder is eliminated; otherwise the Lesser keeps a low profile.";
         case 'Vampire Hunter': return "Public role. Carries the Nerf blaster and may eliminate one target per round (friend or foe).";
-        case 'Mirrorcloak': return "Secret avenger. The first vampire, thrall, or hunter who attacks the Mirrorcloak dies instead. One-time use.";
-        case 'Gravespeaker': return "Hidden medium. After each death may ask the fallen to publicly clear one player who did not kill them. May remain hidden until choosing to act.";
+        case 'Mirrorcloak': return "Secret avenger. The first vampire or hunter who attacks the Mirrorcloak dies instead. One-time use.";
         default: return null;
       }
     }
@@ -300,11 +298,10 @@ const MB = (function(){
       let body = `<div><b>Role:</b> ${me.specialRole}</div>`;
       body += `<div class="muted" style="margin-top:6px">${roleDetailsText(me.specialRole)||''}</div>`;
       if (me.specialRole === 'Elder Vampire' || me.specialRole === 'Lesser Vampire'){
-        let elderList = [], lesser=null, thrall=null;
+        let elderList = [], lesser=null;
         for (const [uid,u] of Object.entries(users||{})){
           if (u.specialRole === 'Elder Vampire') elderList.push({uid,u});
           if (u.specialRole === 'Lesser Vampire') lesser = {uid,u};
-          if (u.specialRole === 'Thrall') thrall = {uid,u};
         }
         const lines=[];
         elderList.forEach(({uid,u})=>{
@@ -312,16 +309,7 @@ const MB = (function(){
           lines.push(`${tag}: <b>${u.name}</b>${aliveStatus(u, chars)}`);
         });
         if (lesser) lines.push(`Lesser Vampire: <b>${lesser.u.name}</b>${aliveStatus(lesser.u, chars)}`);
-        if (thrall) lines.push(`Thrall: <b>${thrall.u.name}</b>${aliveStatus(thrall.u, chars)}`);
         if (lines.length) body += `<div style="margin-top:10px">${lines.map(x=>'- ' + x).join('<br>')}</div>`;
-        return `<div class="role-summary">${body}</div>`;
-      }
-      if (me.specialRole === 'Thrall'){
-        const elderUid = originalElderUid || Object.entries(users||{}).find(([uid,u])=> u.specialRole === 'Elder Vampire')?.[0];
-        const elder = elderUid ? users[elderUid] : null;
-        const freed = elder ? userIsDead(elder, chars) : false;
-        const line = elder ? `Elder Vampire: <b>${elder.name}</b>${aliveStatus(elder, chars)}${freed?' - you are <b>SET FREE</b>.':''}` : 'Elder Vampire: (unknown)';
-        body += `<div style="margin-top:10px">- ${line}</div>`;
         return `<div class="role-summary">${body}</div>`;
       }
       return `<div class="role-summary">${body}</div>`;
@@ -377,11 +365,9 @@ const MB = (function(){
       const updates = {};
       const elders = [];
       let lesserEntry = null;
-      let thrallEntry = null;
       for (const [uid,u] of Object.entries(users)){
         if (u.specialRole === 'Elder Vampire') elders.push([uid,u]);
         if (u.specialRole === 'Lesser Vampire') lesserEntry = [uid,u];
-        if (u.specialRole === 'Thrall') thrallEntry = [uid,u];
       }
       if (!state.originalElderUid && elders.length){
         updates[`rooms/${room}/state/originalElderUid`] = elders[0][0];
@@ -399,16 +385,6 @@ const MB = (function(){
             updates[`rooms/${room}/state/ascendedElderUid`] = lesserUid;
             state.ascendedElderUid = lesserUid;
           }
-        }
-      }
-      if (thrallEntry && state.originalElderUid){
-        // Ensure thrall freed flag stored for reuse (optional for UI)
-        const [thrallUid] = thrallEntry;
-        const elder = users[state.originalElderUid];
-        const freed = elder ? userIsDead(elder, chars) : false;
-        if (!!state.thrallFreed !== !!freed){
-          updates[`rooms/${room}/state/thrallFreed`] = !!freed;
-          state.thrallFreed = !!freed;
         }
       }
       if (Object.keys(updates).length){

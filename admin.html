@@ -60,10 +60,8 @@
                       <option value="">(none)</option>
                       <option>Elder Vampire</option>
                       <option>Lesser Vampire</option>
-                      <option>Thrall</option>
                       <option>Vampire Hunter</option>
                       <option>Mirrorcloak</option>
-                      <option>Gravespeaker</option>
                     </select>
                     <button class="btn" id="assignSpecialBtn">Assign</button>
                     <button class="btn secondary" id="clearRolesBtn">Unassign All</button>
@@ -71,8 +69,11 @@
                   </div>
                   <div id="specialStatus" class="muted" style="margin-top:8px"></div>
                   <div class="divider"></div>
-                  <h4>Role Roster</h4>
-                  <div id="roleRosterBox" class="muted">No special roles assigned.</div>
+                  <div class="row" style="justify-content:space-between; align-items:center">
+                    <h4 style="margin:0">Role Roster</h4>
+                    <button class="btn secondary" id="toggleRoleRosterBtn" data-open="0">Show</button>
+                  </div>
+                  <div id="roleRosterBox" class="muted collapsible" hidden>No special roles assigned.</div>
                 </div>
               </div>
             </section>
@@ -117,9 +118,12 @@
                 </div>
 
                 <div class="card">
-                  <h3>Marked Targets</h3>
+                  <div class="row" style="justify-content:space-between; align-items:center">
+                    <h3 style="margin:0">Marked Targets</h3>
+                    <button class="btn secondary" id="toggleTargetsBtn" data-open="0">Show</button>
+                  </div>
                   <div class="muted">Targets are assigned when the game starts and remain fixed.</div>
-                  <div id="elderTargetAdminGrid" class="target-grid"></div>
+                  <div id="elderTargetAdminGrid" class="target-grid collapsible" hidden></div>
                 </div>
               </div>
             </section>
@@ -409,12 +413,12 @@ function selectElderTargetUids(users, chars){
     if (!u) return false;
     if (u.dead || (u.charId && chars[u.charId]?.dead)) return false;
     const role = u.specialRole || '';
-    if (['Elder Vampire','Lesser Vampire','Thrall'].includes(role)) return false;
+    if (['Elder Vampire','Lesser Vampire'].includes(role)) return false;
     return true;
   });
   if (!entries.length) return [];
   const withoutRole = entries.filter(([uid,u])=> !u.specialRole);
-  const withRole = entries.filter(([uid,u])=> u.specialRole && !['Elder Vampire','Lesser Vampire','Thrall'].includes(u.specialRole));
+  const withRole = entries.filter(([uid,u])=> u.specialRole && !['Elder Vampire','Lesser Vampire'].includes(u.specialRole));
   const shuffle = list=>{
     const arr = list.slice();
     for (let i=arr.length-1;i>0;i--){
@@ -436,7 +440,7 @@ function selectElderTargetUids(users, chars){
     const used = new Set(picks.filter(Boolean).map(([uid])=>uid));
     const remaining = shuffle(entries.filter(([uid])=> !used.has(uid)));
     for (const entry of remaining){
-      const hasRoleAlready = picks.some(item=> item && item[1].specialRole && !['Elder Vampire','Lesser Vampire','Thrall'].includes(item[1].specialRole));
+      const hasRoleAlready = picks.some(item=> item && item[1].specialRole && !['Elder Vampire','Lesser Vampire'].includes(item[1].specialRole));
       if (entry[1].specialRole && hasRoleAlready) continue;
       picks.push(entry);
       used.add(entry[0]);
@@ -768,7 +772,7 @@ $('randomRolesBtn').onclick = async ()=>{
   if (!ADMIN_OK) return;
   const room = currentAdminRoom();
   const claimed = buildClaimedPlayers();
-  const roles = ['Elder Vampire','Lesser Vampire','Thrall','Vampire Hunter','Mirrorcloak','Gravespeaker'];
+  const roles = ['Elder Vampire','Lesser Vampire','Vampire Hunter','Mirrorcloak'];
   if (claimed.length < roles.length){
     $('specialStatus').textContent = `Need at least ${roles.length} claimed players to assign all roles.`;
     return;
@@ -1010,6 +1014,27 @@ $('useDefaultCluesBtn').onclick = async ()=>{
   await db.ref(`rooms/${room}/clues`).set(clues);
   $('csvStatus').textContent='Default clues loaded.';
 };
+(function(){
+  function setupToggleSection(btnId, panelId){
+    const btn = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+    if (!btn || !panel) return;
+    btn.addEventListener('click', ()=>{
+      const open = btn.dataset.open === '1';
+      if (open){
+        panel.hidden = true;
+        btn.dataset.open = '0';
+        btn.textContent = 'Show';
+      }else{
+        panel.hidden = false;
+        btn.dataset.open = '1';
+        btn.textContent = 'Hide';
+      }
+    });
+  }
+  setupToggleSection('toggleRoleRosterBtn','roleRosterBox');
+  setupToggleSection('toggleTargetsBtn','elderTargetAdminGrid');
+})();
 
 </script>
 </body>

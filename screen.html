@@ -23,7 +23,7 @@
   <section id="screen-main" class="screen-panel" hidden>
     <div class="screen-stage">
       <div id="cardCloud" class="card-cloud empty">
-        <div class="card-placeholder muted">Waiting for players...</div>
+        <div class="card-placeholder muted waiting-copy">Waiting for players...</div>
       </div>
       <div id="centerStage" class="center-stage" data-state="welcome">
         <div id="centerTitle" class="center-title">Welcome to Moonlit Bandanas</div>
@@ -114,7 +114,7 @@ function renderCharacters(){
   const claimed = entries.filter(([id])=> userByChar[id]);
   if (!claimed.length){
     board.classList.add('empty');
-    board.innerHTML = '<div class="card-placeholder muted">Waiting for players...</div><div class="center-spacer"></div>';
+    board.innerHTML = '<div class="card-placeholder muted waiting-copy">Waiting for players...</div>';
     scheduleCenterSpacerSync();
     return;
   }
@@ -233,20 +233,24 @@ function scheduleCenterSpacerSync(){
   spacerSyncRaf = requestAnimationFrame(()=>{
     spacerSyncRaf = null;
     const board = $('cardCloud');
-    const spacer = board ? board.querySelector('.center-spacer') : null;
-    const stage = $('centerStage');
-    if (!board || !spacer || !stage) return;
-    const stageRect = stage.getBoundingClientRect();
-    if (!stageRect.width || !stageRect.height) return;
-    const pad = 80;
-    const boardWidth = board.clientWidth || (stageRect.width + pad);
-    const width = Math.max(320, Math.min(stageRect.width + pad, boardWidth));
-    const height = Math.max(260, stageRect.height + pad);
-    spacer.style.flexBasis = `${width}px`;
-    spacer.style.width = `${width}px`;
-    spacer.style.height = `${height}px`;
-    spacer.style.minHeight = `${height}px`;
+  const spacer = board ? board.querySelector('.center-spacer') : null;
+  const stage = $('centerStage');
+  if (!board || !spacer || !stage) return;
+  const stageRect = stage.getBoundingClientRect();
+  if (!stageRect.width || !stageRect.height) return;
+  const pad = 80;
+  const width = Math.max(320, stageRect.width + pad);
+  const height = Math.max(260, stageRect.height + pad);
+  spacer.style.width = `${width}px`;
+  spacer.style.height = `${height}px`;
+  spacer.style.minHeight = `${height}px`;
+  const columns = board.querySelectorAll('.card-column');
+  columns.forEach(col=>{
+    col.style.minHeight = `${height}px`;
+    col.style.justifyContent = 'center';
+    col.querySelectorAll('.character-card').forEach(card=> card.style.transform = '');
   });
+});
 }
 
 function renderCenter(){
@@ -277,6 +281,18 @@ function renderCenter(){
       <p>Passcode: <span class="pill">${passcode}</span></p>
       <p class="muted" style="margin-top:10px;">Waiting for the host to begin the night.</p>
     </div>`;
+    scheduleCenterSpacerSync();
+    return;
+  }
+
+  const victoryPopup = lastPopup && /victory|triumph/.test(((lastPopup.title||'') + (lastPopup.html||lastPopup.body||'')).toLowerCase());
+  if (victoryPopup){
+    stopVoteTimer(false);
+    stopRoundTimer(false);
+    stage.dataset.state = 'victory';
+    titleEl.textContent = lastPopup?.title || 'Game Over';
+    timerEl.textContent = '';
+    bodyEl.innerHTML = lastPopup?.html || lastPopup?.body || 'A winner has been declared.';
     scheduleCenterSpacerSync();
     return;
   }
@@ -340,8 +356,8 @@ $('screenConnectBtn').onclick = async ()=>{
   try{
     const ok = await verifyRoomPassword(room, pass);
     if (!ok){ status.textContent = 'Incorrect password.'; return; }
-    ensureListeners(room);
     screenSession.pass = pass;
+    ensureListeners(room);
     $('screen-join').hidden = true;
     $('screen-main').hidden = false;
     status.textContent = '';

@@ -643,7 +643,6 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
     list.innerHTML = '';
     tallyBox.innerHTML = '';
     btn.disabled = true;
-    delete btn.dataset.forbiddenCandidate;
     if (resultsBox && activeSession.lastVoteSummary){
       const summary = activeSession.lastVoteSummary;
       const inner = summary?.html || summary?.body || '';
@@ -657,18 +656,6 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
   const items = Object.keys(candidates);
 
   let myVote = votes[uidVal] || '';
-  let forbidUid = '';
-  if (me?.specialRole === 'Thrall' && state.originalElderUid){
-    const elder = users[state.originalElderUid];
-    if (elder && !userIsDead(elder, chars)){
-      forbidUid = state.originalElderUid;
-      if (myVote === forbidUid){
-        delete votes[uidVal];
-        myVote = '';
-        db.ref(`rooms/${room}/state/voting/votes/${uidVal}`).remove();
-      }
-    }
-  }
 
   const display = items.map(candidateUid=>{
     const u = users[candidateUid];
@@ -676,22 +663,18 @@ function renderPlayerVoting(room, uidVal, state, users, chars, canVote, me){
     const dead = u ? userIsDead(u, chars) : false;
     const charPart = charName ? `${dead ? `<span class="dead-name">${charName}</span>` : charName}${dead ? ' (dead)' : ' (alive)'}` : (dead ? '(dead)' : '(alive)');
     const label = u ? `${u.name}${charName ? ' - ' + charPart : ' ' + charPart}` : candidateUid;
-    const blocked = !!forbidUid && forbidUid === candidateUid;
-    return {key: candidateUid, label: blocked ? `${label} <span class="muted">(bound)</span>` : label, dead, blocked};
+    return {key: candidateUid, label, dead};
   });
 
   const youAreCandidate = !!candidates[uidVal];
-  if (forbidUid) btn.dataset.forbiddenCandidate = forbidUid;
-  else delete btn.dataset.forbiddenCandidate;
 
   if (voting.open){
     activeSession.lastVoteSummary = null;
     const baseHelp = 'Voting is OPEN. Choose one candidate.';
-    const extra = forbidUid ? ' (You may not vote for the Elder while bound.)' : '';
-    help.textContent = canVote ? baseHelp + (youAreCandidate ? ' (You are also a candidate.)' : '') + extra : 'Voting is OPEN, but you may not vote.';
+    help.textContent = canVote ? baseHelp + (youAreCandidate ? ' (You are also a candidate.)' : '') : 'Voting is OPEN, but you may not vote.';
     list.innerHTML = display.map(d=>`
       <label class="vote-item">
-        <input type="radio" name="voteChoice" value="${d.key}" ${myVote===d.key?'checked':''} ${(d.dead || !canVote || (forbidUid && d.blocked))?'disabled':''}/>
+        <input type="radio" name="voteChoice" value="${d.key}" ${myVote===d.key?'checked':''} ${(d.dead || !canVote)?'disabled':''}/>
         <span class="vote-label">${d.label}</span>
       </label>`).join('') || '<div class="muted">No candidates yet.</div>';
     btn.disabled = !canVote;
@@ -734,13 +717,6 @@ $('castVoteBtn').onclick = async ()=>{
   const choice = list ? list.querySelector('input[name="voteChoice"]:checked') : null;
   if (!choice){
     alert('Pick a candidate.');
-    return;
-  }
-
-  const btn = $('castVoteBtn');
-  const forbidden = (btn && btn.dataset.forbiddenCandidate) || '';
-  if (forbidden && choice.value === forbidden){
-    alert('You are bound to the Elder and cannot vote against them.');
     return;
   }
   await db.ref(`rooms/${room}/state/voting/votes/${myUid}`).set(choice.value);
